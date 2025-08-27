@@ -1,0 +1,17 @@
+{
+  "name": "my-opentui-project",
+  "module": "src/index.tsx",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@opentui/core": "^0.1.11",
+    "@opentui/react": "^0.1.11",
+    "react": "^19.1.1"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "templates",
+  "version": "0.0.1",
+  "description": "OpenTUI project templates",
+  "private": true,
+  "type": "module",
+  "keywords": [
+    "template",
+    "opentui",
+    "scaffold"
+  ],
+  "license": "MIT"
+}
