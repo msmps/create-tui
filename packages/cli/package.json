@@ -1,0 +1,56 @@
+{
+  "name": "create-tui",
+  "version": "0.0.3",
+  "description": "CLI tool for creating OpenTUI projects from templates",
+  "type": "module",
+  "sideEffects": false,
+  "bin": {
+    "create-tui": "dist/bin.js"
+  },
+  "scripts": {
+    "build": "bunchee --minify --sourcemap=false",
+    "postbuild": "bun run scripts/post-build.ts",
+    "dev": "bun run src/bin/create-tui.ts",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "cli",
+    "template",
+    "opentui",
+    "scaffold",
+    "generator",
+    "create-app"
+  ],
+  "author": "Matt Simpson",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/msmps/create-tui.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/msmps/create-tui/issues"
+  },
+  "homepage": "https://github.com/msmps/create-tui#readme",
+  "dependencies": {
+    "@effect/cli": "^0.69.2",
+    "@effect/platform": "^0.90.6",
+    "@effect/platform-node": "^0.96.0",
+    "@effect/printer": "^0.45.0",
+    "@effect/printer-ansi": "^0.45.0",
+    "effect": "^3.17.9",
+    "tar": "^7.4.3"
+  },
+  "devDependencies": {
+    "@effect/language-service": "^0.36.0",
+    "@types/bun": "latest",
+    "bunchee": "^6.6.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "bun": ">=1.0.0"
+  }
+}

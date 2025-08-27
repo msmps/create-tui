@@ -1,0 +1,25 @@
+{
+  "name": "create-tui",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "keywords": [
+    "cli",
+    "template",
+    "opentui",
+    "scaffold",
+    "generator"
+  ],
+  "scripts": {
+    "lint": "biome check .",
+    "lint:fix": "biome check . --write"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.2",
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}
