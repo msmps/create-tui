@@ -9,7 +9,7 @@ This package contains all the project templates used by the `create-tui` tool.
 - **Path**: `react/`
 - **Description**: OpenTUI project with React integration
 
-### Core (Coming Soon)
+### Core
 
 - **Path**: `core/`
 - **Description**: Basic OpenTUI project with core functionality
