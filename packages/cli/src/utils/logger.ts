@@ -1,3 +1,5 @@
+import { ValidationError } from "@effect/cli";
+import { isQuitException } from "@effect/platform/Terminal";
 import * as Ansi from "@effect/printer-ansi/Ansi";
 import * as AnsiDoc from "@effect/printer-ansi/AnsiDoc";
 import * as Arr from "effect/Array";
@@ -33,6 +35,23 @@ export function createLogger() {
 
     for (const message of messages) {
       let messageDoc: AnsiDoc.AnsiDoc;
+
+      if (ValidationError.isValidationError(message)) {
+        return;
+      }
+
+      if (isQuitException(message)) {
+        documents.push(
+          AnsiDoc.cat(
+            AnsiDoc.hardLine,
+            AnsiDoc.catWithSpace(
+              createPrefixDoc(prefixColor),
+              AnsiDoc.text("Exiting..."),
+            ),
+          ),
+        );
+        break;
+      }
 
       if (AnsiDoc.isDoc(message)) {
         messageDoc = message as AnsiDoc.AnsiDoc;

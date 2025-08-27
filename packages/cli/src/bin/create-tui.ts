@@ -6,7 +6,6 @@ import {
   NodeHttpClient,
   NodeRuntime,
 } from "@effect/platform-node";
-import { AnsiDoc } from "@effect/printer-ansi";
 import { Effect, Layer, Logger } from "effect";
 import { cli } from "../cli";
 import { GitHub } from "../services/github";
@@ -24,10 +23,6 @@ const Live = GitHub.Default.pipe(
 );
 
 cli(process.argv).pipe(
-  Effect.catchTags({
-    InvalidArgument: (error) => Effect.die(error),
-    QuitException: () => Effect.logError(AnsiDoc.text("Exiting...")),
-  }),
   Effect.catchAll(Effect.logError),
   Effect.orDie,
   Effect.provide(Live),

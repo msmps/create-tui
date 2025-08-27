@@ -1,6 +1,6 @@
 {
   "name": "create-tui",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "CLI tool for creating OpenTUI projects from templates",
   "type": "module",
   "sideEffects": false,
@@ -25,7 +25,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/msmps/create-tui.git",
+    "url": "git+https://github.com/msmps/create-tui.git",
     "directory": "packages/cli"
   },
   "bugs": {
