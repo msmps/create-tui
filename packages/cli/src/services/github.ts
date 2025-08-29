@@ -26,7 +26,7 @@ export class GitHub extends Effect.Service<GitHub>()("app/GitHub", {
     );
 
     const fetchTemplate = () =>
-      client.get("/bhushan6/create-tui/tar.gz/main").pipe(
+      client.get("/msmps/create-tui/tar.gz/main").pipe(
         HttpClientResponse.stream,
         Stream.mapError(
           (cause) =>
