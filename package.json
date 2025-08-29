@@ -15,7 +15,8 @@
   ],
   "scripts": {
     "lint": "biome check .",
-    "lint:fix": "biome check . --write"
+    "lint:fix": "biome check . --write",
+    "update:opentui": "bash scripts/update-opentui-deps.sh"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.2",
