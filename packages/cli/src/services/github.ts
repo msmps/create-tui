@@ -9,7 +9,7 @@ import * as Tar from "tar";
 import type { ProjectConfig } from "../domain/config";
 
 export class TemplateDownloadError extends Data.TaggedError(
-  "TemplateDownloadError",
+  "TemplateDownloadError"
 )<{
   readonly cause: unknown;
   readonly message: string;
@@ -20,25 +20,25 @@ export class GitHub extends Effect.Service<GitHub>()("app/GitHub", {
   effect: Effect.gen(function* () {
     const client = (yield* HttpClient.HttpClient).pipe(
       HttpClient.mapRequest(
-        HttpClientRequest.prependUrl("https://codeload.github.com"),
+        HttpClientRequest.prependUrl("https://codeload.github.com")
       ),
-      HttpClient.filterStatusOk,
+      HttpClient.filterStatusOk
     );
 
     const fetchTemplate = () =>
-      client.get("/msmps/create-tui/tar.gz/main").pipe(
+      client.get("/bhushan6/create-tui/tar.gz/main").pipe(
         HttpClientResponse.stream,
         Stream.mapError(
           (cause) =>
             new TemplateDownloadError({
               cause,
               message: "Failed to download template",
-            }),
-        ),
+            })
+        )
       );
 
     const downloadTemplate = Effect.fn("Github.downloadTemplate")(function* (
-      config: ProjectConfig,
+      config: ProjectConfig
     ) {
       const sink = NodeSink.fromWritable(
         () =>
@@ -47,14 +47,14 @@ export class GitHub extends Effect.Service<GitHub>()("app/GitHub", {
             strip: 3 + config.projectTemplate.split("/").length,
             filter: (path) =>
               path.includes(
-                `create-tui-main/packages/templates/${config.projectTemplate}`,
+                `create-tui-main/packages/templates/${config.projectTemplate}`
               ),
           }),
         (cause) =>
           new TemplateDownloadError({
             cause,
             message: "Failed to extract template",
-          }),
+          })
       );
 
       yield* Stream.run(fetchTemplate(), sink);
