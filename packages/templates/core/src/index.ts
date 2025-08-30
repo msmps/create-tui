@@ -14,7 +14,7 @@ renderer.root.add(
     Box(
       { justifyContent: "center", alignItems: "flex-end" },
       ASCIIFont({ font: "tiny", text: "OpenTUI" }),
-      Text({ content: "What will you build?", attributes: TextAttributes.DIM })
-    )
-  )
+      Text({ content: "What will you build?", attributes: TextAttributes.DIM }),
+    ),
+  ),
 );

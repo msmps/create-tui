@@ -1,4 +1,5 @@
 import {
+  FileSystem,
   HttpClient,
   HttpClientRequest,
   HttpClientResponse,
@@ -18,6 +19,8 @@ export class TemplateDownloadError extends Data.TaggedError(
 export class GitHub extends Effect.Service<GitHub>()("app/GitHub", {
   accessors: true,
   effect: Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+
     const client = (yield* HttpClient.HttpClient).pipe(
       HttpClient.mapRequest(
         HttpClientRequest.prependUrl("https://codeload.github.com"),
@@ -25,7 +28,7 @@ export class GitHub extends Effect.Service<GitHub>()("app/GitHub", {
       HttpClient.filterStatusOk,
     );
 
-    const fetchTemplate = () =>
+    const fetchRepositoryStream = () =>
       client.get("/msmps/create-tui/tar.gz/main").pipe(
         HttpClientResponse.stream,
         Stream.mapError(
@@ -37,28 +40,48 @@ export class GitHub extends Effect.Service<GitHub>()("app/GitHub", {
         ),
       );
 
-    const downloadTemplate = Effect.fn("Github.downloadTemplate")(function* (
-      config: ProjectConfig,
-    ) {
-      const sink = NodeSink.fromWritable(
-        () =>
-          Tar.extract({
-            cwd: config.projectPath,
-            strip: 3 + config.projectTemplate.split("/").length,
-            filter: (path) =>
-              path.includes(
-                `create-tui-main/packages/templates/${config.projectTemplate}`,
-              ),
-          }),
-        (cause) =>
-          new TemplateDownloadError({
-            cause,
-            message: "Failed to extract template",
-          }),
-      );
+    const downloadTemplate = (config: ProjectConfig) =>
+      Effect.gen(function* () {
+        const tmpDir = yield* fs.makeTempDirectoryScoped();
 
-      yield* Stream.run(fetchTemplate(), sink);
-    });
+        const sink = NodeSink.fromWritable(
+          () =>
+            Tar.x(
+              {
+                cwd: tmpDir,
+                strip: 3 + config.projectTemplate.split("/").length,
+              },
+              [`create-tui-main/packages/templates/${config.projectTemplate}`],
+            ),
+          (cause) =>
+            new TemplateDownloadError({
+              cause,
+              message: "Failed to extract archive.",
+            }),
+        );
+
+        yield* Stream.run(fetchRepositoryStream(), sink);
+
+        yield* fs.readDirectory(tmpDir).pipe(
+          Effect.mapError(
+            (cause) =>
+              new TemplateDownloadError({
+                cause,
+                message: "Could not verify archive was extracted correctly.",
+              }),
+          ),
+          Effect.filterOrFail(
+            (e) => e.length > 0,
+            (cause) =>
+              new TemplateDownloadError({
+                cause,
+                message: `No files found for template. Verify template '${config.projectTemplate}' exists in repository.`,
+              }),
+          ),
+        );
+
+        yield* fs.copy(tmpDir, config.projectPath);
+      }).pipe(Effect.scoped);
 
     return {
       downloadTemplate,

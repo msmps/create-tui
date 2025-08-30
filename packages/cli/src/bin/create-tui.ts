@@ -23,7 +23,12 @@ const Live = GitHub.Default.pipe(
 );
 
 cli(process.argv).pipe(
-  Effect.catchAll(Effect.logError),
+  Effect.catchTags({
+    QuitException: Effect.die,
+    InvalidArgument: Effect.die, // These are handled by the CLI/HelpDoc library
+    InvalidValue: Effect.die, // These are handled by the CLI/HelpDoc library
+  }),
+  Effect.tapError(Effect.logError),
   Effect.orDie,
   Effect.provide(Live),
   NodeRuntime.runMain({

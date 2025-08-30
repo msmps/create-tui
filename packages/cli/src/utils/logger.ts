@@ -1,73 +1,64 @@
-import { ValidationError } from "@effect/cli";
-import { isQuitException } from "@effect/platform/Terminal";
 import * as Ansi from "@effect/printer-ansi/Ansi";
 import * as AnsiDoc from "@effect/printer-ansi/AnsiDoc";
+import { Inspectable } from "effect";
 import * as Arr from "effect/Array";
-import * as Cause from "effect/Cause";
 import * as Logger from "effect/Logger";
-import * as LogLevel from "effect/LogLevel";
+import type * as LogLevel from "effect/LogLevel";
 
-const createPrefixDoc = (color: Ansi.Ansi = Ansi.cyan) =>
-  AnsiDoc.text("create-tui").pipe(
-    AnsiDoc.annotate(color),
-    AnsiDoc.squareBracketed,
-  );
+const logLevelColors: Record<LogLevel.LogLevel["_tag"], Ansi.Ansi> = {
+  None: Ansi.white,
+  All: Ansi.white,
+  Trace: Ansi.white,
+  Debug: Ansi.blue,
+  Info: Ansi.green,
+  Warning: Ansi.yellow,
+  Error: Ansi.red,
+  Fatal: Ansi.combine(Ansi.bgRedBright, Ansi.black),
+};
 
 export function createLogger() {
-  return Logger.make(({ logLevel, message, cause }) => {
+  return Logger.make(({ logLevel, message }) => {
     const messages = Arr.ensure(message);
-    const documents: AnsiDoc.AnsiDoc[] = [];
 
-    const prefixColor = LogLevel.lessThan(logLevel, LogLevel.Error)
-      ? Ansi.green
-      : Ansi.red;
+    let firstLine = AnsiDoc.text("create-tui").pipe(
+      AnsiDoc.annotate(logLevelColors[logLevel._tag]),
+      AnsiDoc.squareBracketed,
+    );
 
-    if (!Cause.isEmpty(cause)) {
-      const output = AnsiDoc.catWithSpace(
-        createPrefixDoc(Ansi.red),
-        AnsiDoc.text(Cause.pretty(cause)),
-      );
+    let messageIndex = 0;
+    if (messages.length > 0) {
+      const firstMaybe = messages[0];
 
-      console.error(AnsiDoc.render(output, { style: "pretty" }));
-
-      return;
-    }
-
-    for (const message of messages) {
-      let messageDoc: AnsiDoc.AnsiDoc;
-
-      if (ValidationError.isValidationError(message)) {
-        return;
-      }
-
-      if (isQuitException(message)) {
-        documents.push(
-          AnsiDoc.cat(
-            AnsiDoc.hardLine,
-            AnsiDoc.catWithSpace(
-              createPrefixDoc(prefixColor),
-              AnsiDoc.text("Exiting..."),
-            ),
-          ),
+      if (AnsiDoc.isDoc(firstMaybe)) {
+        firstLine = AnsiDoc.catWithSpace(
+          firstLine,
+          firstMaybe as AnsiDoc.AnsiDoc,
         );
-        break;
+        messageIndex++;
       }
 
-      if (AnsiDoc.isDoc(message)) {
-        messageDoc = message as AnsiDoc.AnsiDoc;
-      } else {
-        messageDoc = AnsiDoc.text(message as string);
+      if (typeof firstMaybe === "string") {
+        firstLine = AnsiDoc.catWithSpace(firstLine, AnsiDoc.text(firstMaybe));
+        messageIndex++;
       }
-
-      documents.push(
-        AnsiDoc.catWithSpace(createPrefixDoc(prefixColor), messageDoc),
-      );
     }
 
-    const output = AnsiDoc.render(AnsiDoc.vsep(documents), {
-      style: "pretty",
-    });
+    console.log(AnsiDoc.render(firstLine, { style: "pretty" }));
 
-    console.log(output);
+    if (messageIndex < messages.length) {
+      for (; messageIndex < messages.length; messageIndex++) {
+        const message = messages[messageIndex];
+
+        if (AnsiDoc.isDoc(message)) {
+          console.log(
+            AnsiDoc.render(Inspectable.redact(message) as AnsiDoc.AnsiDoc, {
+              style: "pretty",
+            }),
+          );
+        } else {
+          console.log(Inspectable.redact(message));
+        }
+      }
+    }
   });
 }
