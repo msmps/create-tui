@@ -9,9 +9,10 @@ import {
 import { Effect, Layer, Logger } from "effect";
 import { cli } from "../cli";
 import { GitHub } from "../services/github";
+import { Installer } from "../services/installer";
 import { createLogger } from "../utils/logger";
 
-const Live = GitHub.Default.pipe(
+const Live = Layer.mergeAll(GitHub.Default, Installer.Default).pipe(
   Layer.provideMerge(
     Layer.mergeAll(
       Logger.replace(Logger.defaultLogger, createLogger()),

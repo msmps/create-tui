@@ -4,6 +4,7 @@ import { Ansi, AnsiDoc } from "@effect/printer-ansi";
 import { Effect } from "effect";
 import type { ProjectConfig } from "./domain/config";
 import { GitHub } from "./services/github";
+import { Installer } from "./services/installer";
 
 export function createProject(config: ProjectConfig) {
   return Effect.gen(function* () {
@@ -57,9 +58,12 @@ export function createProject(config: ProjectConfig) {
     yield* Effect.logInfo(
       AnsiDoc.hsep([
         AnsiDoc.text("Success!").pipe(AnsiDoc.annotate(Ansi.green)),
-        AnsiDoc.text("Project created in:"),
+        AnsiDoc.text("Project created at"),
         AnsiDoc.text(config.projectPath).pipe(AnsiDoc.annotate(Ansi.green)),
       ]),
     );
+
+    yield* Installer.checkBunInstalled();
+    yield* Installer.installDependencies(config.projectPath);
   });
 }
