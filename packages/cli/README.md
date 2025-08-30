@@ -20,7 +20,7 @@ bun create tui
 This will prompt you for:
 
 - Project name
-- Template choice (Core, React, Solid)
+- Template choice (Core, React, Solid, Vue)
 
 ### With Arguments
 
