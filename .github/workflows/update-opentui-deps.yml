@@ -36,9 +36,6 @@ jobs:
       - name: Check for @opentui/* updates
         id: check-updates
         run: |
-          # Store original package.json files to compare later
-          find packages/templates -name "package.json" -not -path "packages/templates/package.json" -exec cp {} {}.backup \;
-
           # Run the update script
           ./scripts/update-opentui-deps.sh
 
