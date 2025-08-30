@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "bun rub build.ts && bun run dist/"
+    "start": "bun run build.ts && bun run dist/"
   },
   "devDependencies": {
     "@types/bun": "latest"
