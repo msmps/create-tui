@@ -45,6 +45,7 @@ function handleCommand({ projectName, projectTemplate }: Config) {
             { title: "Core", value: "core" },
             { title: "React", value: "react" },
             { title: "Solid", value: "solid" },
+            { title: "Vue", value: "vue" },
           ],
         }),
     );
