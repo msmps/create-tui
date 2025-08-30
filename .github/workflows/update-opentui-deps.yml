@@ -52,11 +52,11 @@ jobs:
             
             # Show what changed
             echo "Changed files:"
-            git diff --name-only packages/templates
+            git diff --name-only packages/templates | cat
             
             # Show the diff for package.json files
             echo "Changes:"
-            git diff packages/templates
+            git diff packages/templates | cat
           fi
 
       - name: Create Pull Request

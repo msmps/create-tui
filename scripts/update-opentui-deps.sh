@@ -169,10 +169,10 @@ main() {
             if update_opentui_deps "$template_path/package.json" "$template_name"; then
                 # Dependencies were updated, so update lockfile
                 if update_lockfile "$template_path" "$template_name"; then
-                    ((updated_count++))
+                    updated_count=$((updated_count + 1))
                     print_success "Successfully updated $template_name"
                 else
-                    ((failed_count++))
+                    failed_count=$((failed_count + 1))
                     print_error "Failed to update lockfile for $template_name"
                 fi
             else
