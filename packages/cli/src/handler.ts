@@ -1,4 +1,6 @@
+import { Prompt } from "@effect/cli";
 import { FileSystem, Path } from "@effect/platform";
+import { Ansi, AnsiDoc } from "@effect/printer-ansi";
 import { Effect } from "effect";
 import type { ProjectConfig } from "./domain/config";
 import { GitHub } from "./services/github";
@@ -8,17 +10,38 @@ export function createProject(config: ProjectConfig) {
     const path = yield* Path.Path;
     const fs = yield* FileSystem.FileSystem;
 
-    yield* Effect.logInfo(`Creating a new project in ${config.projectPath}`);
+    if ((yield* fs.exists(config.projectPath)) === true) {
+      yield* Effect.logWarning(
+        AnsiDoc.hsep([
+          AnsiDoc.text("Directory"),
+          AnsiDoc.text(config.projectPath).pipe(AnsiDoc.annotate(Ansi.yellow)),
+          AnsiDoc.text("already exists"),
+        ]),
+      );
 
-    yield* fs.makeDirectory(config.projectPath, { recursive: true });
-    yield* Effect.logDebug(`Created directory: ${config.projectPath}`);
+      if (yield* Prompt.confirm({ message: "Would you like to delete it?" })) {
+        yield* fs.remove(config.projectPath, { recursive: true });
+      } else {
+        return yield* Effect.fail("Aborting creation of project...");
+      }
+    }
 
     yield* Effect.logInfo(
-      `Initializing project with the ${config.projectTemplate} template`,
+      AnsiDoc.hsep([
+        AnsiDoc.text("Creating a new project in"),
+        AnsiDoc.text(config.projectPath).pipe(AnsiDoc.annotate(Ansi.green)),
+      ]),
+    );
+
+    yield* Effect.logInfo(
+      AnsiDoc.hsep([
+        AnsiDoc.text("Initializing project with the"),
+        AnsiDoc.text(config.projectTemplate).pipe(AnsiDoc.annotate(Ansi.green)),
+        AnsiDoc.text("template"),
+      ]),
     );
 
     yield* GitHub.downloadTemplate(config);
-    yield* Effect.logDebug(`Template download completed`);
 
     const packageJson = yield* fs
       .readFileString(path.join(config.projectPath, "package.json"))
@@ -31,10 +54,12 @@ export function createProject(config: ProjectConfig) {
       JSON.stringify(packageJson, null, 2),
     );
 
-    yield* Effect.logDebug(
-      `Updated package.json with project name: ${config.projectName}`,
+    yield* Effect.logInfo(
+      AnsiDoc.hsep([
+        AnsiDoc.text("Success!").pipe(AnsiDoc.annotate(Ansi.green)),
+        AnsiDoc.text("Project created in:"),
+        AnsiDoc.text(config.projectPath).pipe(AnsiDoc.annotate(Ansi.green)),
+      ]),
     );
-
-    yield* Effect.logInfo(`Success! Project created in: ${config.projectPath}`);
   });
 }
