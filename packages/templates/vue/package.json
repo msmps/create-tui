@@ -13,8 +13,8 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@opentui/core": "^0.1.14",
-    "@opentui/vue": "^0.1.14",
+    "@opentui/core": "^0.1.16",
+    "@opentui/vue": "^0.1.16",
     "bun-plugin-vue3": "^1.0.0-beta.2",
     "vue": "^3.5.20"
   }
