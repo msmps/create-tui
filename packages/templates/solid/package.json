@@ -12,8 +12,8 @@
   "dependencies": {
     "@babel/core": "^7.28.3",
     "@babel/preset-typescript": "^7.27.1",
-    "@opentui/core": "^0.1.19",
-    "@opentui/solid": "^0.1.19",
+    "@opentui/core": "^0.1.23",
+    "@opentui/solid": "^0.1.23",
     "babel-preset-solid": "^1.9.9",
     "solid-js": "^1.9.9"
   }
