@@ -3,6 +3,9 @@
   "module": "src/index.tsx",
   "type": "module",
   "private": true,
+  "scripts": {
+    "dev": "bun run --watch src/index.tsx"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
