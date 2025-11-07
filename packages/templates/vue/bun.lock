@@ -4,7 +4,7 @@
     "": {
       "name": "vue",
       "dependencies": {
-        "@opentui/core": "^0.1.36",
+        "@opentui/core": "^0.1.38",
         "@opentui/vue": "^0.1.25",
         "bun-plugin-vue3": "^1.0.0-beta.2",
         "vue": "^3.5.20",
@@ -86,19 +86,19 @@
 
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
-    "@opentui/core": ["@opentui/core@0.1.36", "", { "dependencies": { "bun-ffi-structs": "^0.1.0", "jimp": "1.6.0", "yoga-layout": "3.2.1" }, "optionalDependencies": { "@dimforge/rapier2d-simd-compat": "^0.17.3", "@opentui/core-darwin-arm64": "0.1.36", "@opentui/core-darwin-x64": "0.1.36", "@opentui/core-linux-arm64": "0.1.36", "@opentui/core-linux-x64": "0.1.36", "@opentui/core-win32-arm64": "0.1.36", "@opentui/core-win32-x64": "0.1.36", "bun-webgpu": "0.1.3", "planck": "^1.4.2", "three": "0.177.0" }, "peerDependencies": { "web-tree-sitter": "0.25.10" } }, "sha512-urDrj33udJ0dJGkZv+T5U0mCFBOOvUt9Tvqkrj8aRvi6kN0Bc5d2COuWcpAKo0TO9/PvjSwHC+CMnw2Sr46/ug=="],
+    "@opentui/core": ["@opentui/core@0.1.38", "", { "dependencies": { "bun-ffi-structs": "^0.1.0", "jimp": "1.6.0", "yoga-layout": "3.2.1" }, "optionalDependencies": { "@dimforge/rapier2d-simd-compat": "^0.17.3", "@opentui/core-darwin-arm64": "0.1.38", "@opentui/core-darwin-x64": "0.1.38", "@opentui/core-linux-arm64": "0.1.38", "@opentui/core-linux-x64": "0.1.38", "@opentui/core-win32-arm64": "0.1.38", "@opentui/core-win32-x64": "0.1.38", "bun-webgpu": "0.1.3", "planck": "^1.4.2", "three": "0.177.0" }, "peerDependencies": { "web-tree-sitter": "0.25.10" } }, "sha512-GwSsOfGos0CTJhVaCT9DSGM/VcM38Kj8Ds06+sfloxB4sxPgrkItfXxwIm2uCLGUAtuGgGGUN8nMfUmrTibKZw=="],
 
-    "@opentui/core-darwin-arm64": ["@opentui/core-darwin-arm64@0.1.36", "", { "os": "darwin", "cpu": "arm64" }, "sha512-/fb0k1H0CeTroVt2UoEAcVrEx1cIYy4B2zfX0MrwUkIfXi36aoIBnisBeYvyCpsQfxFAkyLYCCA3NzaYEyC5hg=="],
+    "@opentui/core-darwin-arm64": ["@opentui/core-darwin-arm64@0.1.38", "", { "os": "darwin", "cpu": "arm64" }, "sha512-iC71iR1N1ZiHjTC84PbncD7+NC1a+hWdF+wK7DVpW0NsKFRhNImIKGFxoq9aAG+/mH1dcvyNmk29gBwQnbPSpg=="],
 
-    "@opentui/core-darwin-x64": ["@opentui/core-darwin-x64@0.1.36", "", { "os": "darwin", "cpu": "x64" }, "sha512-PZMydJbSDUoEWqZsyEV8+FSwMT+r7mWFL0ABgdALI3AOrSr7Z8dMcRnFWl8LhriuHS589THvETJEN28L4q/E2Q=="],
+    "@opentui/core-darwin-x64": ["@opentui/core-darwin-x64@0.1.38", "", { "os": "darwin", "cpu": "x64" }, "sha512-5f68CY8VC6/W78FjaeP/B/K6L5R28M+ypyZMzZphssimUAXY2uXzJyXN4AMSRWnI9ztDb1XS54m1GWkB2MBLGw=="],
 
-    "@opentui/core-linux-arm64": ["@opentui/core-linux-arm64@0.1.36", "", { "os": "linux", "cpu": "arm64" }, "sha512-ATR+vdtraZEC/gHR1mQa/NYPlqFNBpsnnJAGepQmcxm85VceLYM701QaaIgNAwyYXiP6RQN1ZCv06MD1Ph1m4w=="],
+    "@opentui/core-linux-arm64": ["@opentui/core-linux-arm64@0.1.38", "", { "os": "linux", "cpu": "arm64" }, "sha512-WNiI7jx6o7UYCPNtp05ajODPSzQLZN2+DADKBWT3pOwGpWvLYeMQpUGYQ0Z1nmwsqO5R/27SJdaoPnbKU6DIPw=="],
 
-    "@opentui/core-linux-x64": ["@opentui/core-linux-x64@0.1.36", "", { "os": "linux", "cpu": "x64" }, "sha512-INsnPtcZVx68C+0Vd0L9+akDwNbWblUDqLmY9CftfmeLFubzvJXNRYTBvr7lX68fcst6Ho+0beUxyUoClKc0rg=="],
+    "@opentui/core-linux-x64": ["@opentui/core-linux-x64@0.1.38", "", { "os": "linux", "cpu": "x64" }, "sha512-sjQlgbmY0QNIyaCUO/Qp8J7wLLrTjhFzrQQE50Q4ReTNC6puUgsNBlT4PxoS3bYxVtvHYr+y95OCRqZPrbkyrQ=="],
 
-    "@opentui/core-win32-arm64": ["@opentui/core-win32-arm64@0.1.36", "", { "os": "win32", "cpu": "arm64" }, "sha512-x9lDZTL+xE8jsG1hP4pdsqCsZBu77JNR/ze5F7ZQkYQEC6Zl/XJtL1YT08nUlWOu4NMSws2xXV0lS/sJkbEgPA=="],
+    "@opentui/core-win32-arm64": ["@opentui/core-win32-arm64@0.1.38", "", { "os": "win32", "cpu": "arm64" }, "sha512-mFylg8AItMvWaf4YhUfrO72NIrArjY3zhmHXObnV2pssvWZQWmskvtLPaXoaOEAyRBbev5hx7h58DgVzq6ECqw=="],
 
-    "@opentui/core-win32-x64": ["@opentui/core-win32-x64@0.1.36", "", { "os": "win32", "cpu": "x64" }, "sha512-WVU+qtAfJe8ikPWbw8Hfli15GuQTMKiceTkF5lql5AQYy7PKYtGTzWszxOZKeUU1/eEd2X4REi8Bn0TprEMxYw=="],
+    "@opentui/core-win32-x64": ["@opentui/core-win32-x64@0.1.38", "", { "os": "win32", "cpu": "x64" }, "sha512-5JmYrlmT1OlLI8eAdSW7r4m1J903c15VtkfLOkjEpqasvS75J0ulvq6kuofdqXuYqBarIh8cb8lcsTFQJniM2Q=="],
 
     "@opentui/vue": ["@opentui/vue@0.1.25", "", { "dependencies": { "@opentui/core": "0.1.25", "@vue/runtime-core": "^3.5.18" }, "peerDependencies": { "typescript": "^5", "vue": "^3.5.18" } }, "sha512-8PeafkzLJ0SK7XhuyQ9Q8GfpEyzDimJAuvCUlk3UAIWuOQdzhgjV9yYQFLclrKt81j1El3j0is5vQfYT0iLiMg=="],
 
