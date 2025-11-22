@@ -77,9 +77,9 @@ jobs:
             Please verify that all templates still work correctly after these updates:
             ```bash
             # Test each template
-            cd packages/templates/core && bun run src/index.ts
-            cd packages/templates/react && bun run src/index.tsx  
-            cd packages/templates/solid && bun run src/index.tsx
+            cd packages/templates/core && bun dev
+            cd packages/templates/react && bun dev  
+            cd packages/templates/solid && bun dev
             ```
           branch: update-opentui-dependencies
           delete-branch: true
