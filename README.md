@@ -21,7 +21,6 @@ bun create tui my-tui-project
 - **core** - Basic OpenTUI project
 - **react** - OpenTUI project with React integration
 - **solid** - OpenTUI project with Solid.js integration
-- **vue** - OpenTUI project with Vue integration
 
 ## Workspace Structure
 
@@ -35,7 +34,6 @@ packages/
     ├── react/      # React template
     ├── core/       # Core template
     └── solid/      # Solid template
-    └── vue/        # Vue template
 ```
 
 ## Publishing

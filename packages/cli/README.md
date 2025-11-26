@@ -20,7 +20,7 @@ bun create tui
 This will prompt you for:
 
 - Project name
-- Template choice (Core, React, Solid, Vue)
+- Template choice (Core, React, Solid)
 
 ### With Arguments
 
@@ -33,9 +33,6 @@ bun create tui my-core-app --template core
 
 # Create a Solid project
 bun create tui my-solid-app --template solid
-
-# Create a Vue project
-bun create tui my-vue-app --template vue
 ```
 
 ## Available Templates
@@ -43,11 +40,10 @@ bun create tui my-vue-app --template vue
 - **core**: OpenTUI project with core functionality
 - **react**: OpenTUI project with React integration
 - **solid**: OpenTUI project with Solid.js integration
-- **vue**: OpenTUI project with Vue integration
 
 ## Options
 
-- `--template, -t`: Specify the template to use (core, react, solid, vue)
+- `--template, -t`: Specify the template to use (core, react, solid)
 - `--help`: Show help information
 - `--version`: Show version number
 
