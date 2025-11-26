@@ -33,18 +33,18 @@
   },
   "homepage": "https://github.com/msmps/create-tui#readme",
   "dependencies": {
-    "@effect/cli": "^0.69.2",
-    "@effect/platform": "^0.90.6",
-    "@effect/platform-node": "^0.96.0",
-    "@effect/printer": "^0.45.0",
-    "@effect/printer-ansi": "^0.45.0",
-    "effect": "^3.17.9",
-    "tar": "^7.4.3"
+    "@effect/cli": "^0.72.1",
+    "@effect/platform": "^0.93.3",
+    "@effect/platform-node": "^0.101.1",
+    "@effect/printer": "^0.47.0",
+    "@effect/printer-ansi": "^0.47.0",
+    "effect": "^3.19.6",
+    "tar": "^7.5.2"
   },
   "devDependencies": {
-    "@effect/language-service": "^0.36.0",
+    "@effect/language-service": "^0.56.0",
     "@types/bun": "latest",
-    "bunchee": "^6.6.0"
+    "bunchee": "^6.6.2"
   },
   "peerDependencies": {
     "typescript": "^5"

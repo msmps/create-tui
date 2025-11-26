@@ -19,7 +19,7 @@
     "update:opentui": "bash scripts/update-opentui-deps.sh"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.2",
+    "@biomejs/biome": "2.3.7",
     "@types/bun": "latest",
     "typescript": "^5"
   }
