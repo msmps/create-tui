@@ -1,4 +1,4 @@
-import { TextAttributes, createCliRenderer } from "@opentui/core";
+import { createCliRenderer, TextAttributes } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 
 function App() {
