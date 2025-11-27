@@ -2,27 +2,30 @@ import { Prompt } from "@effect/cli";
 import { FileSystem, Path } from "@effect/platform";
 import { Ansi, AnsiDoc } from "@effect/printer-ansi";
 import { Effect } from "effect";
-import type { ProjectConfig } from "./domain/config";
+import { ProjectSettings } from "./context";
 import { GitHub } from "./services/github";
 import { Project } from "./services/project";
 
-export function createProject(config: ProjectConfig) {
+export function createProject() {
   return Effect.gen(function* () {
     const path = yield* Path.Path;
     const project = yield* Project;
     const fs = yield* FileSystem.FileSystem;
+    const projectSettings = yield* ProjectSettings;
 
-    if ((yield* fs.exists(config.projectPath)) === true) {
+    if ((yield* fs.exists(projectSettings.projectPath)) === true) {
       yield* Effect.logWarning(
         AnsiDoc.hsep([
           AnsiDoc.text("Directory"),
-          AnsiDoc.text(config.projectPath).pipe(AnsiDoc.annotate(Ansi.yellow)),
+          AnsiDoc.text(projectSettings.projectPath).pipe(
+            AnsiDoc.annotate(Ansi.yellow),
+          ),
           AnsiDoc.text("already exists"),
         ]),
       );
 
       if (yield* Prompt.confirm({ message: "Would you like to delete it?" })) {
-        yield* fs.remove(config.projectPath, { recursive: true });
+        yield* fs.remove(projectSettings.projectPath, { recursive: true });
       } else {
         return yield* Effect.fail("Aborting creation of project...");
       }
@@ -31,32 +34,36 @@ export function createProject(config: ProjectConfig) {
     yield* Effect.logInfo(
       AnsiDoc.hsep([
         AnsiDoc.text("Creating a new project in"),
-        AnsiDoc.text(config.projectPath).pipe(AnsiDoc.annotate(Ansi.green)),
+        AnsiDoc.text(projectSettings.projectPath).pipe(
+          AnsiDoc.annotate(Ansi.green),
+        ),
       ]),
     );
 
     yield* Effect.logInfo(
       AnsiDoc.hsep([
         AnsiDoc.text("Initializing project with the"),
-        AnsiDoc.text(config.projectTemplate).pipe(AnsiDoc.annotate(Ansi.green)),
+        AnsiDoc.text(projectSettings.projectTemplate).pipe(
+          AnsiDoc.annotate(Ansi.green),
+        ),
         AnsiDoc.text("template"),
       ]),
     );
 
-    yield* GitHub.downloadTemplate(config);
+    yield* GitHub.downloadTemplate();
 
     const packageJson = yield* fs
-      .readFileString(path.join(config.projectPath, "package.json"))
+      .readFileString(path.join(projectSettings.projectPath, "package.json"))
       .pipe(Effect.map((json) => JSON.parse(json)));
 
-    packageJson.name = config.projectName;
+    packageJson.name = projectSettings.projectName;
 
     yield* fs.writeFileString(
-      path.join(config.projectPath, "package.json"),
+      path.join(projectSettings.projectPath, "package.json"),
       JSON.stringify(packageJson, null, 2),
     );
 
-    if (!config.disableGitHubRepositoryInitialization) {
+    if (!projectSettings.disableGitHubRepositoryInitialization) {
       const initializeGitHubRepositoryResult =
         yield* project.initializeGitHubRepository();
 
@@ -77,7 +84,9 @@ export function createProject(config: ProjectConfig) {
       AnsiDoc.hsep([
         AnsiDoc.text("Success!").pipe(AnsiDoc.annotate(Ansi.green)),
         AnsiDoc.text("Project created at:"),
-        AnsiDoc.text(config.projectPath).pipe(AnsiDoc.annotate(Ansi.green)),
+        AnsiDoc.text(projectSettings.projectPath).pipe(
+          AnsiDoc.annotate(Ansi.green),
+        ),
       ]),
     );
   });

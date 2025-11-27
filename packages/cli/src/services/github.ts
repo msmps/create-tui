@@ -7,7 +7,7 @@ import {
 import { NodeSink } from "@effect/platform-node";
 import { Data, Effect, Stream } from "effect";
 import * as Tar from "tar";
-import type { ProjectConfig } from "../domain/config";
+import { ProjectSettings } from "../context";
 
 export class TemplateDownloadError extends Data.TaggedError(
   "TemplateDownloadError",
@@ -40,18 +40,21 @@ export class GitHub extends Effect.Service<GitHub>()("app/GitHub", {
         ),
       );
 
-    const downloadTemplate = (config: ProjectConfig) =>
+    const downloadTemplate = () =>
       Effect.gen(function* () {
         const tmpDir = yield* fs.makeTempDirectoryScoped();
+        const projectSettings = yield* ProjectSettings;
 
         const sink = NodeSink.fromWritable(
           () =>
             Tar.x(
               {
                 cwd: tmpDir,
-                strip: 3 + config.projectTemplate.split("/").length,
+                strip: 3 + projectSettings.projectTemplate.split("/").length,
               },
-              [`create-tui-main/packages/templates/${config.projectTemplate}`],
+              [
+                `create-tui-main/packages/templates/${projectSettings.projectTemplate}`,
+              ],
             ),
           (cause) =>
             new TemplateDownloadError({
@@ -75,12 +78,12 @@ export class GitHub extends Effect.Service<GitHub>()("app/GitHub", {
             (cause) =>
               new TemplateDownloadError({
                 cause,
-                message: `No files found for template. Verify template '${config.projectTemplate}' exists in repository.`,
+                message: `No files found for template. Verify template '${projectSettings.projectTemplate}' exists in repository.`,
               }),
           ),
         );
 
-        yield* fs.copy(tmpDir, config.projectPath);
+        yield* fs.copy(tmpDir, projectSettings.projectPath);
       }).pipe(Effect.scoped);
 
     return {

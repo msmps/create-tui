@@ -2,6 +2,7 @@ import { Args, Command, Options, Prompt } from "@effect/cli";
 import { Path } from "@effect/platform";
 import { Effect, Option } from "effect";
 import { version } from "../package.json" with { type: "json" };
+import { ProjectSettings } from "./context";
 import type { Config } from "./domain/config";
 import { templates } from "./domain/template";
 import { createProject } from "./handler";
@@ -61,12 +62,14 @@ function handleCommand({
       Effect.map((path) => path.resolve(resolvedProjectName)),
     );
 
-    return yield* createProject({
-      projectName: resolvedProjectName,
-      projectPath,
-      projectTemplate: resolvedProjectTemplate,
-      disableGitHubRepositoryInitialization,
-    });
+    return yield* createProject().pipe(
+      ProjectSettings.provide({
+        projectName: resolvedProjectName,
+        projectPath,
+        projectTemplate: resolvedProjectTemplate,
+        disableGitHubRepositoryInitialization,
+      }),
+    );
   });
 }
 
