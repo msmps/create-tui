@@ -5,7 +5,7 @@ import {
   HttpClientResponse,
 } from "@effect/platform";
 import { NodeSink } from "@effect/platform-node";
-import { Data, Effect, Stream } from "effect";
+import { Context, Data, Effect, Layer, Stream } from "effect";
 import * as Tar from "tar";
 import { ProjectSettings } from "../context";
 
@@ -16,78 +16,105 @@ export class TemplateDownloadError extends Data.TaggedError(
   readonly message: string;
 }> {}
 
-export class GitHub extends Effect.Service<GitHub>()("app/GitHub", {
-  accessors: true,
-  effect: Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
+export class GitHub extends Context.Tag("create-tui/services/github")<
+  GitHub,
+  {
+    readonly downloadTemplate: () => Effect.Effect<
+      void,
+      TemplateDownloadError,
+      ProjectSettings
+    >;
+  }
+>() {
+  static readonly layer = Layer.effect(
+    GitHub,
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
 
-    const client = (yield* HttpClient.HttpClient).pipe(
-      HttpClient.mapRequest(
-        HttpClientRequest.prependUrl("https://codeload.github.com"),
-      ),
-      HttpClient.filterStatusOk,
-    );
-
-    const fetchRepositoryStream = () =>
-      client.get("/msmps/create-tui/tar.gz/main").pipe(
-        HttpClientResponse.stream,
-        Stream.mapError(
-          (cause) =>
-            new TemplateDownloadError({
-              cause,
-              message: "Failed to download template",
-            }),
+      const client = (yield* HttpClient.HttpClient).pipe(
+        HttpClient.mapRequest(
+          HttpClientRequest.prependUrl("https://codeload.github.com"),
         ),
+        HttpClient.filterStatusOk,
       );
 
-    const downloadTemplate = () =>
-      Effect.gen(function* () {
-        const tmpDir = yield* fs.makeTempDirectoryScoped();
-        const projectSettings = yield* ProjectSettings;
+      const fetchRepositoryStream = () =>
+        client.get("/msmps/create-tui/tar.gz/main").pipe(
+          HttpClientResponse.stream,
+          Stream.mapError(
+            (cause) =>
+              new TemplateDownloadError({
+                cause,
+                message: "Failed to download template",
+              }),
+          ),
+        );
 
-        const sink = NodeSink.fromWritable(
-          () =>
-            Tar.x(
-              {
-                cwd: tmpDir,
-                strip: 3 + projectSettings.projectTemplate.split("/").length,
-              },
-              [
-                `create-tui-main/packages/templates/${projectSettings.projectTemplate}`,
-              ],
+      const downloadTemplate = () =>
+        Effect.gen(function* () {
+          const projectSettings = yield* ProjectSettings;
+          const tmpDir = yield* fs.makeTempDirectoryScoped().pipe(
+            Effect.mapError(
+              (cause) =>
+                new TemplateDownloadError({
+                  cause,
+                  message: "Failed to create temporary directory.",
+                }),
             ),
-          (cause) =>
-            new TemplateDownloadError({
-              cause,
-              message: "Failed to extract archive.",
-            }),
-        );
+          );
 
-        yield* Stream.run(fetchRepositoryStream(), sink);
-
-        yield* fs.readDirectory(tmpDir).pipe(
-          Effect.mapError(
+          const sink = NodeSink.fromWritable(
+            () =>
+              Tar.x(
+                {
+                  cwd: tmpDir,
+                  strip: 3 + projectSettings.projectTemplate.split("/").length,
+                },
+                [
+                  `create-tui-main/packages/templates/${projectSettings.projectTemplate}`,
+                ],
+              ),
             (cause) =>
               new TemplateDownloadError({
                 cause,
-                message: "Could not verify archive was extracted correctly.",
+                message: "Failed to extract archive.",
               }),
-          ),
-          Effect.filterOrFail(
-            (e) => e.length > 0,
-            (cause) =>
-              new TemplateDownloadError({
-                cause,
-                message: `No files found for template. Verify template '${projectSettings.projectTemplate}' exists in repository.`,
-              }),
-          ),
-        );
+          );
 
-        yield* fs.copy(tmpDir, projectSettings.projectPath);
-      }).pipe(Effect.scoped);
+          yield* Stream.run(fetchRepositoryStream(), sink);
 
-    return {
-      downloadTemplate,
-    } as const;
-  }),
-}) {}
+          yield* fs.readDirectory(tmpDir).pipe(
+            Effect.mapError(
+              (cause) =>
+                new TemplateDownloadError({
+                  cause,
+                  message: "Could not verify archive was extracted correctly.",
+                }),
+            ),
+            Effect.filterOrFail(
+              (e) => e.length > 0,
+              (cause) =>
+                new TemplateDownloadError({
+                  cause,
+                  message: `No files found for template. Verify template '${projectSettings.projectTemplate}' exists in repository.`,
+                }),
+            ),
+          );
+
+          yield* fs.copy(tmpDir, projectSettings.projectPath).pipe(
+            Effect.mapError(
+              (cause) =>
+                new TemplateDownloadError({
+                  cause,
+                  message: "Failed to copy template.",
+                }),
+            ),
+          );
+        }).pipe(Effect.scoped);
+
+      return GitHub.of({
+        downloadTemplate,
+      });
+    }),
+  );
+}

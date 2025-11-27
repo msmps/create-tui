@@ -12,7 +12,7 @@ import { GitHub } from "../services/github";
 import { Project } from "../services/project";
 import { createLogger } from "../utils/logger";
 
-const Live = GitHub.Default.pipe(
+const Live = GitHub.layer.pipe(
   Layer.provideMerge(Project.layer),
   Layer.provide(Logger.replace(Logger.defaultLogger, createLogger())),
   Layer.provide(NodeHttpClient.layer),

@@ -10,6 +10,7 @@ export function createProject() {
   return Effect.gen(function* () {
     const path = yield* Path.Path;
     const project = yield* Project;
+    const github = yield* GitHub;
     const fs = yield* FileSystem.FileSystem;
     const projectSettings = yield* ProjectSettings;
 
@@ -50,7 +51,7 @@ export function createProject() {
       ]),
     );
 
-    yield* GitHub.downloadTemplate();
+    yield* github.downloadTemplate();
 
     const packageJson = yield* fs
       .readFileString(path.join(projectSettings.projectPath, "package.json"))
