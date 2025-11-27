@@ -9,17 +9,15 @@ import {
 import { Effect, Layer, Logger } from "effect";
 import { cli } from "../cli";
 import { GitHub } from "../services/github";
+import { Project } from "../services/project";
 import { createLogger } from "../utils/logger";
 
 const Live = GitHub.Default.pipe(
-  Layer.provideMerge(
-    Layer.mergeAll(
-      Logger.replace(Logger.defaultLogger, createLogger()),
-      CliConfig.layer({ showBuiltIns: false }),
-      NodeContext.layer,
-      NodeHttpClient.layer,
-    ),
-  ),
+  Layer.provideMerge(Project.layer),
+  Layer.provide(Logger.replace(Logger.defaultLogger, createLogger())),
+  Layer.provide(NodeHttpClient.layer),
+  Layer.provide(CliConfig.layer({ showBuiltIns: false })),
+  Layer.provideMerge(NodeContext.layer),
 );
 
 cli(process.argv).pipe(

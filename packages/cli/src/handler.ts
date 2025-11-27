@@ -4,10 +4,12 @@ import { Ansi, AnsiDoc } from "@effect/printer-ansi";
 import { Effect } from "effect";
 import type { ProjectConfig } from "./domain/config";
 import { GitHub } from "./services/github";
+import { Project } from "./services/project";
 
 export function createProject(config: ProjectConfig) {
   return Effect.gen(function* () {
     const path = yield* Path.Path;
+    const project = yield* Project;
     const fs = yield* FileSystem.FileSystem;
 
     if ((yield* fs.exists(config.projectPath)) === true) {
@@ -54,10 +56,27 @@ export function createProject(config: ProjectConfig) {
       JSON.stringify(packageJson, null, 2),
     );
 
+    if (!config.disableGitHubRepositoryInitialization) {
+      const initializeGitHubRepositoryResult =
+        yield* project.initializeGitHubRepository();
+
+      if (!initializeGitHubRepositoryResult) {
+        yield* Effect.logError(
+          AnsiDoc.text("Failed to initialize GitHub repository"),
+        );
+      } else {
+        yield* Effect.logInfo(
+          AnsiDoc.hsep([
+            AnsiDoc.text("GitHub repository initialized successfully"),
+          ]),
+        );
+      }
+    }
+
     yield* Effect.logInfo(
       AnsiDoc.hsep([
         AnsiDoc.text("Success!").pipe(AnsiDoc.annotate(Ansi.green)),
-        AnsiDoc.text("Project created in:"),
+        AnsiDoc.text("Project created at:"),
         AnsiDoc.text(config.projectPath).pipe(AnsiDoc.annotate(Ansi.green)),
       ]),
     );
