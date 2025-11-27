@@ -12,7 +12,7 @@ import { ProjectSettings } from "../context";
 export class TemplateDownloadError extends Data.TaggedError(
   "TemplateDownloadError",
 )<{
-  readonly cause: unknown;
+  readonly cause?: unknown;
   readonly message: string;
 }> {}
 
@@ -45,7 +45,7 @@ export class GitHub extends Context.Tag("create-tui/services/github")<
             (cause) =>
               new TemplateDownloadError({
                 cause,
-                message: "Failed to download template",
+                message: "Failed to download template.",
               }),
           ),
         );
@@ -63,25 +63,27 @@ export class GitHub extends Context.Tag("create-tui/services/github")<
             ),
           );
 
-          const sink = NodeSink.fromWritable(
-            () =>
-              Tar.x(
-                {
-                  cwd: tmpDir,
-                  strip: 3 + projectSettings.projectTemplate.split("/").length,
-                },
-                [
-                  `create-tui-main/packages/templates/${projectSettings.projectTemplate}`,
-                ],
-              ),
-            (cause) =>
-              new TemplateDownloadError({
-                cause,
-                message: "Failed to extract archive.",
-              }),
+          yield* Stream.run(
+            fetchRepositoryStream(),
+            NodeSink.fromWritable(
+              () =>
+                Tar.x(
+                  {
+                    cwd: tmpDir,
+                    strip:
+                      3 + projectSettings.projectTemplate.split("/").length,
+                  },
+                  [
+                    `create-tui-main/packages/templates/${projectSettings.projectTemplate}`,
+                  ],
+                ),
+              (cause) =>
+                new TemplateDownloadError({
+                  cause,
+                  message: "Failed to download and extract archive.",
+                }),
+            ),
           );
-
-          yield* Stream.run(fetchRepositoryStream(), sink);
 
           yield* fs.readDirectory(tmpDir).pipe(
             Effect.mapError(
@@ -93,9 +95,8 @@ export class GitHub extends Context.Tag("create-tui/services/github")<
             ),
             Effect.filterOrFail(
               (e) => e.length > 0,
-              (cause) =>
+              () =>
                 new TemplateDownloadError({
-                  cause,
                   message: `No files found for template. Verify template '${projectSettings.projectTemplate}' exists in repository.`,
                 }),
             ),
