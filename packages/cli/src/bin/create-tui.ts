@@ -6,31 +6,45 @@ import {
   NodeHttpClient,
   NodeRuntime,
 } from "@effect/platform-node";
-import { Effect, Layer, Logger } from "effect";
+import { Cause, Console, Effect, Layer, Logger, pipe } from "effect";
 import { cli } from "../cli";
 import { GitHub } from "../services/github";
+import { PackageManager } from "../services/package-manager";
+import { Project } from "../services/project";
 import { createLogger } from "../utils/logger";
 
-const Live = GitHub.Default.pipe(
-  Layer.provideMerge(
-    Layer.mergeAll(
-      Logger.replace(Logger.defaultLogger, createLogger()),
-      CliConfig.layer({ showBuiltIns: false }),
-      NodeContext.layer,
-      NodeHttpClient.layer,
-    ),
-  ),
+const MainLive = Layer.mergeAll(
+  GitHub.layer,
+  Project.layer,
+  PackageManager.layer,
+).pipe(
+  Layer.provide(Logger.replace(Logger.defaultLogger, createLogger())),
+  Layer.provide(CliConfig.layer({ showBuiltIns: false })),
+  Layer.provideMerge(NodeContext.layer),
+  Layer.provide(NodeHttpClient.layer),
 );
 
 cli(process.argv).pipe(
   Effect.catchTags({
-    QuitException: Effect.die,
-    InvalidArgument: Effect.die, // These are handled by the CLI/HelpDoc library
-    InvalidValue: Effect.die, // These are handled by the CLI/HelpDoc library
+    TemplateDownloadError: (cause) =>
+      Effect.logError(`Failed to download template: ${cause.message}`),
+    CreateProjectError: (cause) =>
+      Effect.logError(`Failed to create project: ${cause.message}`),
+    QuitException: () =>
+      pipe(
+        Console.log(),
+        Effect.andThen(() => Effect.logWarning("Quitting...")),
+      ),
+    InvalidValue: Effect.succeed, // Weird conflict with the HelpDoc impl
+    InvalidArgument: Effect.succeed, // Weird conflict with the HelpDoc impl
   }),
-  Effect.tapError(Effect.logError),
-  Effect.orDie,
-  Effect.provide(Live),
+  Effect.tapErrorCause((cause) => {
+    if (Cause.isInterruptedOnly(cause)) {
+      return Effect.void;
+    }
+    return Effect.logError(cause);
+  }),
+  Effect.provide(MainLive),
   NodeRuntime.runMain({
     disablePrettyLogger: true,
     disableErrorReporting: true,

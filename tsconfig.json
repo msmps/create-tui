@@ -23,6 +23,10 @@
     "noImplicitOverride": true,
     "noImplicitAny": true,
 
+    // Performance
+    "incremental": true,
+    "composite": true,
+
     // Some stricter flags (disabled by default)
     "noUnusedLocals": true,
     "noUnusedParameters": false,
