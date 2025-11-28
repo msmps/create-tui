@@ -1,6 +1,6 @@
 import * as Ansi from "@effect/printer-ansi/Ansi";
 import * as AnsiDoc from "@effect/printer-ansi/AnsiDoc";
-import { Inspectable } from "effect";
+import { Cause, Inspectable } from "effect";
 import * as Arr from "effect/Array";
 import * as Logger from "effect/Logger";
 import type * as LogLevel from "effect/LogLevel";
@@ -17,7 +17,7 @@ const logLevelColors: Record<LogLevel.LogLevel["_tag"], Ansi.Ansi> = {
 };
 
 export function createLogger() {
-  return Logger.make(({ logLevel, message }) => {
+  return Logger.make(({ logLevel, message, cause }) => {
     const messages = Arr.ensure(message);
 
     let firstLine = AnsiDoc.text("create-tui").pipe(
@@ -41,9 +41,17 @@ export function createLogger() {
         firstLine = AnsiDoc.catWithSpace(firstLine, AnsiDoc.text(firstMaybe));
         messageIndex++;
       }
+
+      console.log(AnsiDoc.render(firstLine, { style: "pretty" }));
     }
 
-    console.log(AnsiDoc.render(firstLine, { style: "pretty" }));
+    if (!Cause.isEmpty(cause)) {
+      firstLine = AnsiDoc.catWithSpace(
+        firstLine,
+        AnsiDoc.text(Cause.pretty(cause, { renderErrorCause: true })),
+      );
+      console.log(AnsiDoc.render(firstLine, { style: "pretty" }));
+    }
 
     if (messageIndex < messages.length) {
       for (; messageIndex < messages.length; messageIndex++) {

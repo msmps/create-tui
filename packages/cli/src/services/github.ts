@@ -5,16 +5,10 @@ import {
   HttpClientResponse,
 } from "@effect/platform";
 import { NodeSink } from "@effect/platform-node";
-import { Context, Data, Effect, Layer, Stream } from "effect";
+import { Context, Effect, Layer, Stream } from "effect";
 import * as Tar from "tar";
 import { ProjectSettings } from "../context";
-
-export class TemplateDownloadError extends Data.TaggedError(
-  "TemplateDownloadError",
-)<{
-  readonly cause?: unknown;
-  readonly message: string;
-}> {}
+import { TemplateDownloadError } from "../domain/errors";
 
 export class GitHub extends Context.Tag("create-tui/services/github")<
   GitHub,

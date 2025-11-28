@@ -1,13 +1,7 @@
 import { Command, type CommandExecutor } from "@effect/platform";
-import { Context, Data, Effect, Layer } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { ProjectSettings } from "../context";
-
-export class InitializeGitRepositoryError extends Data.TaggedError(
-  "InitializeGitRepositoryError",
-)<{
-  readonly cause?: unknown;
-  readonly message: string;
-}> {}
+import { InitializeGitRepositoryError } from "../domain/errors";
 
 export class Project extends Context.Tag("create-tui/services/project")<
   Project,

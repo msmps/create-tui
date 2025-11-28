@@ -3,6 +3,7 @@ import { FileSystem, Path } from "@effect/platform";
 import { Ansi, AnsiDoc } from "@effect/printer-ansi";
 import { Effect } from "effect";
 import { ProjectSettings } from "./context";
+import { CreateProjectError } from "./domain/errors";
 import { GitHub } from "./services/github";
 import { PackageManager } from "./services/package-manager";
 import { Project } from "./services/project";
@@ -16,7 +17,17 @@ export function createProject() {
     const packageManager = yield* PackageManager;
     const projectSettings = yield* ProjectSettings;
 
-    if (yield* fs.exists(projectSettings.projectPath)) {
+    const directoryExists = yield* fs.exists(projectSettings.projectPath).pipe(
+      Effect.mapError(
+        (cause) =>
+          new CreateProjectError({
+            cause,
+            message: "Failed to check if directory exists.",
+          }),
+      ),
+    );
+
+    if (directoryExists) {
       yield* Effect.logWarning(
         AnsiDoc.hsep([
           AnsiDoc.text("Directory"),
@@ -28,9 +39,19 @@ export function createProject() {
       );
 
       if (yield* Prompt.confirm({ message: "Would you like to delete it?" })) {
-        yield* fs.remove(projectSettings.projectPath, { recursive: true });
+        yield* fs.remove(projectSettings.projectPath, { recursive: true }).pipe(
+          Effect.mapError(
+            (cause) =>
+              new CreateProjectError({
+                cause,
+                message: "Failed to delete directory.",
+              }),
+          ),
+        );
       } else {
-        return yield* Effect.fail("Aborting creation of project...");
+        return yield* new CreateProjectError({
+          message: "Directory already exists.",
+        });
       }
     }
 
@@ -53,7 +74,7 @@ export function createProject() {
       ]),
     );
 
-    yield* github.downloadTemplate();
+    yield* github.downloadTemplate(); // Short-circuit if download fails
 
     const packageJson = yield* fs
       .readFileString(path.join(projectSettings.projectPath, "package.json"))
@@ -66,7 +87,13 @@ export function createProject() {
       JSON.stringify(packageJson, null, 2),
     );
 
-    yield* packageManager.install();
+    yield* packageManager
+      .install()
+      .pipe(
+        Effect.catchAll((cause) =>
+          Effect.logError(`Package installation failed: ${cause.message}`),
+        ),
+      );
 
     if (projectSettings.initializedGitRepository) {
       yield* project.initializeGitRepository().pipe(

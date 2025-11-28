@@ -1,22 +1,8 @@
 import { Command, type CommandExecutor } from "@effect/platform";
 import { Ansi, AnsiDoc } from "@effect/printer-ansi";
-import { Console, Context, Data, Effect, Layer } from "effect";
+import { Console, Context, Effect, Layer } from "effect";
 import { ProjectSettings } from "../context";
-
-declare global {
-  namespace NodeJS {
-    interface ProcessEnv {
-      npm_config_user_agent: string;
-    }
-  }
-}
-
-export class PackageManagerError extends Data.TaggedError(
-  "PackageManagerError",
-)<{
-  readonly cause?: unknown;
-  readonly message: string;
-}> {}
+import { PackageManagerError } from "../domain/errors";
 
 export class PackageManager extends Context.Tag(
   "create-tui/services/package-manager",
