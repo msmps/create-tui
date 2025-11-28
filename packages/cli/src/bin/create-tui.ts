@@ -13,13 +13,15 @@ import { PackageManager } from "../services/package-manager";
 import { Project } from "../services/project";
 import { createLogger } from "../utils/logger";
 
-const Live = GitHub.layer.pipe(
-  Layer.provideMerge(Project.layer),
-  Layer.provideMerge(PackageManager.layer),
+const MainLive = Layer.mergeAll(
+  GitHub.layer,
+  Project.layer,
+  PackageManager.layer,
+).pipe(
   Layer.provide(Logger.replace(Logger.defaultLogger, createLogger())),
-  Layer.provide(NodeHttpClient.layer),
   Layer.provide(CliConfig.layer({ showBuiltIns: false })),
   Layer.provideMerge(NodeContext.layer),
+  Layer.provide(NodeHttpClient.layer),
 );
 
 cli(process.argv).pipe(
@@ -29,7 +31,7 @@ cli(process.argv).pipe(
     InvalidValue: Effect.die, // These are handled by the CLI/HelpDoc library
   }),
   Effect.catchAll(Effect.logError),
-  Effect.provide(Live),
+  Effect.provide(MainLive),
   NodeRuntime.runMain({
     disablePrettyLogger: true,
     disableErrorReporting: true,
