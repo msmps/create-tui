@@ -11,8 +11,7 @@
     "build": "bunchee --minify --sourcemap=false",
     "postbuild": "bun run scripts/post-build.ts",
     "dev": "bun run src/bin/create-tui.ts",
-    "prepublishOnly": "bun run build",
-    "prepare": "effect-language-service patch"
+    "prepublishOnly": "bun run build"
   },
   "keywords": [
     "cli",
