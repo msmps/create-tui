@@ -4,17 +4,19 @@ import { Ansi, AnsiDoc } from "@effect/printer-ansi";
 import { Effect } from "effect";
 import { ProjectSettings } from "./context";
 import { GitHub } from "./services/github";
+import { PackageManager } from "./services/package-manager";
 import { Project } from "./services/project";
 
 export function createProject() {
   return Effect.gen(function* () {
+    const github = yield* GitHub;
     const path = yield* Path.Path;
     const project = yield* Project;
-    const github = yield* GitHub;
     const fs = yield* FileSystem.FileSystem;
+    const packageManager = yield* PackageManager;
     const projectSettings = yield* ProjectSettings;
 
-    if ((yield* fs.exists(projectSettings.projectPath)) === true) {
+    if (yield* fs.exists(projectSettings.projectPath)) {
       yield* Effect.logWarning(
         AnsiDoc.hsep([
           AnsiDoc.text("Directory"),
@@ -64,21 +66,26 @@ export function createProject() {
       JSON.stringify(packageJson, null, 2),
     );
 
-    if (!projectSettings.disableGitHubRepositoryInitialization) {
-      const initializeGitHubRepositoryResult =
-        yield* project.initializeGitHubRepository();
+    yield* packageManager.install();
 
-      if (!initializeGitHubRepositoryResult) {
-        yield* Effect.logError(
-          AnsiDoc.text("Failed to initialize GitHub repository"),
-        );
-      } else {
-        yield* Effect.logInfo(
-          AnsiDoc.hsep([
-            AnsiDoc.text("GitHub repository initialized successfully"),
-          ]),
-        );
-      }
+    if (projectSettings.initializedGitRepository) {
+      yield* project.initializeGitRepository().pipe(
+        Effect.andThen(
+          Effect.logInfo(
+            AnsiDoc.hsep([
+              AnsiDoc.text("Git repository initialized successfully"),
+            ]),
+          ),
+        ),
+        Effect.catchAll((cause) =>
+          Effect.logWarning(
+            AnsiDoc.hsep([
+              AnsiDoc.text("Skipping initialization of git repository:"),
+              AnsiDoc.text(cause.message).pipe(AnsiDoc.annotate(Ansi.red)),
+            ]),
+          ),
+        ),
+      );
     }
 
     yield* Effect.logInfo(

@@ -20,9 +20,9 @@ const projectName = Args.directory({
   Args.optional,
 );
 
-const disableGitHubRepositoryInitialization = Options.boolean(
-  "disable-git",
-).pipe(Options.withDescription("Skip initializing a GitHub repository"));
+const disableGitRepositoryInitialization = Options.boolean("disable-git").pipe(
+  Options.withDescription("Skip initializing a git repository"),
+);
 
 const projectTemplate = Options.choice("template", templates).pipe(
   Options.withAlias("t"),
@@ -33,7 +33,7 @@ const projectTemplate = Options.choice("template", templates).pipe(
 function handleCommand({
   projectName,
   projectTemplate,
-  disableGitHubRepositoryInitialization,
+  disableGitRepositoryInitialization,
 }: Config) {
   return Effect.gen(function* () {
     const resolvedProjectName = yield* Option.getOrElse(
@@ -58,6 +58,14 @@ function handleCommand({
         }),
     );
 
+    const initializedGitRepository =
+      disableGitRepositoryInitialization === false
+        ? yield* Prompt.confirm({
+            message: "Do you want to initialize a git repository?",
+            initial: true,
+          })
+        : false;
+
     const projectPath = yield* Path.Path.pipe(
       Effect.map((path) => path.resolve(resolvedProjectName)),
     );
@@ -67,7 +75,7 @@ function handleCommand({
         projectName: resolvedProjectName,
         projectPath,
         projectTemplate: resolvedProjectTemplate,
-        disableGitHubRepositoryInitialization,
+        initializedGitRepository,
       }),
     );
   });
@@ -76,7 +84,7 @@ function handleCommand({
 const command = Command.make("create-tui", {
   projectName,
   projectTemplate,
-  disableGitHubRepositoryInitialization,
+  disableGitRepositoryInitialization,
 }).pipe(
   Command.withDescription("Create a new OpenTUI project from a template"),
   Command.withHandler(handleCommand),

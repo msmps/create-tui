@@ -1,10 +1,22 @@
 import { Command, type CommandExecutor } from "@effect/platform";
-import { Context, Effect, Layer } from "effect";
+import { Context, Data, Effect, Layer } from "effect";
+import { ProjectSettings } from "../context";
+
+export class InitializeGitRepositoryError extends Data.TaggedError(
+  "InitializeGitRepositoryError",
+)<{
+  readonly cause?: unknown;
+  readonly message: string;
+}> {}
 
 export class Project extends Context.Tag("create-tui/services/project")<
   Project,
   {
-    readonly initializeGitHubRepository: () => Effect.Effect<boolean, never>;
+    readonly initializeGitRepository: () => Effect.Effect<
+      void,
+      InitializeGitRepositoryError,
+      ProjectSettings
+    >;
   }
 >() {
   static readonly layer = Layer.effect(
@@ -13,11 +25,14 @@ export class Project extends Context.Tag("create-tui/services/project")<
       const commandExecutorContext =
         yield* Effect.context<CommandExecutor.CommandExecutor>();
 
-      const executeCommand = Effect.fn("Project.executeCommand")(function* (
+      const executeCommand = Effect.fn(function* (
         command: string,
         ...args: string[]
       ) {
+        const projectSettings = yield* ProjectSettings;
+
         return yield* Command.make(command, ...args).pipe(
+          Command.workingDirectory(projectSettings.projectPath),
           Command.exitCode,
           Effect.flatMap((exitCode) =>
             exitCode === 0 ? Effect.succeed(true) : Effect.fail(false),
@@ -27,7 +42,7 @@ export class Project extends Context.Tag("create-tui/services/project")<
         );
       });
 
-      const initializeGitHubRepository = () =>
+      const initializeGitRepository = () =>
         Effect.gen(function* () {
           const isInsideWorkTree = yield* executeCommand(
             "git",
@@ -36,7 +51,11 @@ export class Project extends Context.Tag("create-tui/services/project")<
           );
 
           if (isInsideWorkTree) {
-            return false;
+            return yield* Effect.fail(
+              new InitializeGitRepositoryError({
+                message: "Already inside a git repository.",
+              }),
+            );
           }
 
           const initializeRepositoryResult = yield* executeCommand(
@@ -45,7 +64,11 @@ export class Project extends Context.Tag("create-tui/services/project")<
           );
 
           if (!initializeRepositoryResult) {
-            return false;
+            return yield* Effect.fail(
+              new InitializeGitRepositoryError({
+                message: "Failed to initialize git repository.",
+              }),
+            );
           }
 
           const hasDefaultBranch = yield* executeCommand(
@@ -60,7 +83,11 @@ export class Project extends Context.Tag("create-tui/services/project")<
 
           const addAllResult = yield* executeCommand("git", "add", "-A");
           if (!addAllResult) {
-            return false;
+            return yield* Effect.fail(
+              new InitializeGitRepositoryError({
+                message: "Failed to add all files to git repository.",
+              }),
+            );
           }
 
           const commitResult = yield* executeCommand(
@@ -71,14 +98,18 @@ export class Project extends Context.Tag("create-tui/services/project")<
           );
 
           if (!commitResult) {
-            return false;
+            return yield* Effect.fail(
+              new InitializeGitRepositoryError({
+                message: "Failed to commit to git repository.",
+              }),
+            );
           }
 
-          return true;
+          return yield* Effect.void;
         });
 
       return Project.of({
-        initializeGitHubRepository,
+        initializeGitRepository,
       });
     }),
   );

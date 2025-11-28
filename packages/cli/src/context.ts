@@ -9,7 +9,7 @@ export class ProjectSettings extends Context.Tag(
     readonly projectName: string;
     readonly projectPath: string;
     readonly projectTemplate: string;
-    readonly disableGitHubRepositoryInitialization: boolean;
+    readonly initializedGitRepository: boolean;
   }
 >() {
   static readonly provide = (projectConfig: ProjectConfig) =>
