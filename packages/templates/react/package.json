@@ -13,8 +13,8 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@opentui/core": "^0.1.57",
-    "@opentui/react": "^0.1.57",
+    "@opentui/core": "^0.1.59",
+    "@opentui/react": "^0.1.59",
     "react": "^19.1.1"
   }
 }
