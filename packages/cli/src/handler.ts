@@ -67,12 +67,15 @@ export function createProject() {
     yield* Effect.logInfo(
       AnsiDoc.hsep([
         AnsiDoc.text("Initializing project with the"),
-        AnsiDoc.text(projectSettings.projectTemplate).pipe(
+        AnsiDoc.text(projectSettings.projectTemplate.displayName).pipe(
           AnsiDoc.annotate(Ansi.green),
         ),
         AnsiDoc.text("template"),
       ]),
     );
+
+    // Validate custom templates before downloading
+    yield* github.validateTemplate();
 
     yield* github.downloadTemplate(); // Short-circuit if download fails
 

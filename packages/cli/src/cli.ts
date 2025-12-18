@@ -4,7 +4,11 @@ import { Effect, Option } from "effect";
 import { version } from "../package.json" with { type: "json" };
 import { ProjectSettings } from "./context";
 import type { Config } from "./domain/config";
-import { templates } from "./domain/template";
+import {
+  BuiltinTemplateSource,
+  builtinTemplates,
+  TemplateSourceSchema,
+} from "./domain/template";
 import { createProject } from "./handler";
 import {
   validateProjectName,
@@ -24,9 +28,17 @@ const disableGitRepositoryInitialization = Options.boolean("disable-git").pipe(
   Options.withDescription("Skip initializing a git repository"),
 );
 
-const projectTemplate = Options.choice("template", templates).pipe(
+const verbose = Options.boolean("verbose").pipe(
+  Options.withAlias("v"),
+  Options.withDescription("Show detailed progress during template operations"),
+);
+
+const projectTemplate = Options.text("template").pipe(
   Options.withAlias("t"),
-  Options.withDescription("The template to use for the project"),
+  Options.withDescription(
+    `Template: built-in (${builtinTemplates.join(", ")}) or GitHub (user/repo)`,
+  ),
+  Options.withSchema(TemplateSourceSchema),
   Options.optional,
 );
 
@@ -34,6 +46,7 @@ function handleCommand({
   projectName,
   projectTemplate,
   disableGitRepositoryInitialization,
+  verbose,
 }: Config) {
   return Effect.gen(function* () {
     const resolvedProjectName = yield* Option.getOrElse(
@@ -51,11 +64,11 @@ function handleCommand({
         Prompt.select({
           message: "Which template do you want to use?",
           choices: [
-            { title: "Core", value: "core" },
-            { title: "React", value: "react" },
-            { title: "Solid", value: "solid" },
+            { title: "Core", value: "core" as const },
+            { title: "React", value: "react" as const },
+            { title: "Solid", value: "solid" as const },
           ],
-        }),
+        }).pipe(Effect.map((name) => new BuiltinTemplateSource({ name }))),
     );
 
     const initializedGitRepository =
@@ -76,6 +89,7 @@ function handleCommand({
         projectPath,
         projectTemplate: resolvedProjectTemplate,
         initializedGitRepository,
+        verbose,
       }),
     );
   });
@@ -85,6 +99,7 @@ const command = Command.make("create-tui", {
   projectName,
   projectTemplate,
   disableGitRepositoryInitialization,
+  verbose,
 }).pipe(
   Command.withDescription("Create a new OpenTUI project from a template"),
   Command.withHandler(handleCommand),

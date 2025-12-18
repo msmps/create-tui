@@ -12,6 +12,13 @@ export class TemplateDownloadError extends Data.TaggedError(
   readonly message: string;
 }> {}
 
+export class TemplateValidationError extends Data.TaggedError(
+  "TemplateValidationError",
+)<{
+  readonly cause?: unknown;
+  readonly message: string;
+}> {}
+
 export class PackageManagerError extends Data.TaggedError(
   "PackageManagerError",
 )<{

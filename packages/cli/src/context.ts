@@ -1,5 +1,6 @@
 import { Context, Effect } from "effect";
 import type { ProjectConfig } from "./domain/config";
+import type { TemplateSource } from "./domain/template";
 
 export class ProjectSettings extends Context.Tag(
   "create-tui/context/project-settings",
@@ -8,8 +9,9 @@ export class ProjectSettings extends Context.Tag(
   {
     readonly projectName: string;
     readonly projectPath: string;
-    readonly projectTemplate: string;
+    readonly projectTemplate: TemplateSource;
     readonly initializedGitRepository: boolean;
+    readonly verbose: boolean;
   }
 >() {
   static readonly provide = (projectConfig: ProjectConfig) =>
