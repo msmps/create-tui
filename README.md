@@ -26,23 +26,30 @@ bun create tui my-tui-project
 
 ### Custom GitHub Templates
 
-You can also use any GitHub repository as a template by specifying the `user/repo` format:
+You can use any GitHub repository as a template by providing the full GitHub URL:
 
 ```bash
 # Use a custom GitHub template
-bun create tui --template user/repo my-project
+bun create tui --template https://github.com/user/repo my-project
 
-# Example
-bun create tui --template msmps/opentui-starter my-project
+# Use a nested directory within a repository (include tree/branch)
+bun create tui --template https://github.com/user/repo/tree/main/templates/starter my-project
 ```
 
-Custom templates must have a `package.json` at the repository root.
+Custom templates must have a `package.json` at the template root.
+
+## Features
+
+- **Built-in templates** - Core, React, and Solid.js templates ready to use
+- **Custom GitHub templates** - Use any GitHub repository or nested directory as a template
+- **Update notifications** - Automatically checks for newer versions and notifies you
+- **Git initialization** - Optionally initializes a git repository in new projects
 
 ## CLI Options
 
 ```
 Options:
-  -t, --template <template>  Template: built-in (core, react, solid) or GitHub (user/repo)
+  -t, --template <template>  Template: built-in (core, react, solid) or GitHub URL
   --disable-git              Skip initializing a git repository
   -v, --verbose              Show detailed progress during template operations
   -h, --help                 Show help documentation
@@ -59,7 +66,7 @@ bun create tui my-project
 bun create tui --template react my-project
 
 # Use a custom GitHub template with verbose output
-bun create tui --template user/repo -v my-project
+bun create tui --template https://github.com/user/repo -v my-project
 
 # Skip git initialization
 bun create tui --template core --disable-git my-project
