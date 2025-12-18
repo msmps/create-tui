@@ -4,11 +4,14 @@ import { Console, Context, Effect, Layer } from "effect";
 import { ProjectSettings } from "../context";
 import { PackageManagerError } from "../domain/errors";
 
+export type PackageManagerName = "bun" | "npm" | "pnpm" | "yarn";
+
 export class PackageManager extends Context.Tag(
   "create-tui/services/package-manager",
 )<
   PackageManager,
   {
+    readonly name: PackageManagerName;
     readonly install: () => Effect.Effect<
       void,
       PackageManagerError,
@@ -22,7 +25,7 @@ export class PackageManager extends Context.Tag(
       const commandExecutorContext =
         yield* Effect.context<CommandExecutor.CommandExecutor>();
 
-      const getPackageManager = () => {
+      const getPackageManager = (): PackageManagerName => {
         const userAgent = process.env.npm_config_user_agent || "";
 
         if (userAgent.startsWith("pnpm")) {
@@ -36,20 +39,21 @@ export class PackageManager extends Context.Tag(
         }
       };
 
+      const packageManagerName = getPackageManager();
+
       const install = Effect.fn(function* () {
-        const packageManager = yield* Effect.sync(() => getPackageManager());
         const projectSettings = yield* ProjectSettings;
 
         yield* Effect.logInfo(
           AnsiDoc.hsep([
             AnsiDoc.text("Installing dependencies using"),
-            AnsiDoc.text(packageManager).pipe(AnsiDoc.annotate(Ansi.green)),
+            AnsiDoc.text(packageManagerName).pipe(AnsiDoc.annotate(Ansi.green)),
           ]),
         );
 
         yield* Console.log();
 
-        yield* Command.make(packageManager, "install").pipe(
+        yield* Command.make(packageManagerName, "install").pipe(
           Command.workingDirectory(projectSettings.projectPath),
           Command.stdout("inherit"),
           Command.stderr("inherit"),
@@ -73,6 +77,7 @@ export class PackageManager extends Context.Tag(
       });
 
       return PackageManager.of({
+        name: packageManagerName,
         install,
       });
     }),

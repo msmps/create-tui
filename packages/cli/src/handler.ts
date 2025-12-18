@@ -4,9 +4,10 @@ import { Ansi, AnsiDoc } from "@effect/printer-ansi";
 import { Effect } from "effect";
 import { ProjectSettings } from "./context";
 import { CreateProjectError } from "./domain/errors";
-import { TemplateDownloader } from "./services/template-downloader";
 import { PackageManager } from "./services/package-manager";
 import { Project } from "./services/project";
+import { TemplateDownloader } from "./services/template-downloader";
+import { checkForUpdates } from "./utils/update-check";
 
 export function createProject() {
   return Effect.gen(function* () {
@@ -135,5 +136,10 @@ export function createProject() {
         ),
       ]),
     );
+
+    // Check for updates after project creation
+    yield* checkForUpdates({
+      packageManager: packageManager.name,
+    });
   });
 }

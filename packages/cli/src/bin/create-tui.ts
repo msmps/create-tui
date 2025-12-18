@@ -21,7 +21,7 @@ const MainLive = Layer.mergeAll(
   Layer.provide(Logger.replace(Logger.defaultLogger, createLogger())),
   Layer.provide(CliConfig.layer({ showBuiltIns: false })),
   Layer.provideMerge(NodeContext.layer),
-  Layer.provide(NodeHttpClient.layer),
+  Layer.provideMerge(NodeHttpClient.layer),
 );
 
 cli(process.argv).pipe(

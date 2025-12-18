@@ -39,11 +39,13 @@
     "@effect/printer": "^0.47.0",
     "@effect/printer-ansi": "^0.47.0",
     "effect": "^3.19.6",
+    "semver": "^7.7.3",
     "tar": "^7.5.2"
   },
   "devDependencies": {
     "@effect/language-service": "^0.56.0",
     "@types/bun": "latest",
+    "@types/semver": "^7.7.1",
     "bunchee": "^6.6.2"
   },
   "peerDependencies": {
