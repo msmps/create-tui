@@ -70,8 +70,6 @@ export class PackageManager extends Context.Tag(
         );
 
         yield* Console.log();
-
-        return yield* Effect.void;
       });
 
       return PackageManager.of({

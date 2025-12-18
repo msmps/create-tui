@@ -4,13 +4,13 @@ import { Ansi, AnsiDoc } from "@effect/printer-ansi";
 import { Effect } from "effect";
 import { ProjectSettings } from "./context";
 import { CreateProjectError } from "./domain/errors";
-import { GitHub } from "./services/github";
+import { TemplateDownloader } from "./services/template-downloader";
 import { PackageManager } from "./services/package-manager";
 import { Project } from "./services/project";
 
 export function createProject() {
   return Effect.gen(function* () {
-    const github = yield* GitHub;
+    const templateDownloader = yield* TemplateDownloader;
     const path = yield* Path.Path;
     const project = yield* Project;
     const fs = yield* FileSystem.FileSystem;
@@ -74,14 +74,22 @@ export function createProject() {
       ]),
     );
 
-    // Validate custom templates before downloading
-    yield* github.validateTemplate();
-
-    yield* github.downloadTemplate(); // Short-circuit if download fails
+    yield* templateDownloader.download();
 
     const packageJson = yield* fs
       .readFileString(path.join(projectSettings.projectPath, "package.json"))
-      .pipe(Effect.map((json) => JSON.parse(json)));
+      .pipe(
+        Effect.flatMap((json) =>
+          Effect.try({
+            try: () => JSON.parse(json),
+            catch: (cause) =>
+              new CreateProjectError({
+                cause,
+                message: "Failed to parse package.json",
+              }),
+          }),
+        ),
+      );
 
     packageJson.name = projectSettings.projectName;
 

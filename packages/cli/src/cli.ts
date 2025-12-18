@@ -36,7 +36,7 @@ const verbose = Options.boolean("verbose").pipe(
 const projectTemplate = Options.text("template").pipe(
   Options.withAlias("t"),
   Options.withDescription(
-    `Template: built-in (${builtinTemplates.join(", ")}) or GitHub (user/repo)`,
+    `Template: built-in (${builtinTemplates.join(", ")}) or GitHub URL (https://github.com/owner/repo)`,
   ),
   Options.withSchema(TemplateSourceSchema),
   Options.optional,

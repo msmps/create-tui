@@ -98,8 +98,6 @@ export class Project extends Context.Tag("create-tui/services/project")<
               }),
             );
           }
-
-          return yield* Effect.void;
         });
 
       return Project.of({
