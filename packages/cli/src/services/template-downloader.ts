@@ -255,23 +255,6 @@ export class TemplateDownloader extends Context.Tag(
             yield* Effect.logInfo("Extracting to temporary directory...");
           }
 
-          const tarFilter = isBuiltin
-            ? [`create-tui-main/packages/templates/${template.name}`]
-            : [];
-
-          const filterFn =
-            !isBuiltin && template.filePath
-              ? (path: string) => {
-                  const parts = path.split("/");
-                  if (parts.length < 2) return false;
-                  const relativePath = parts.slice(1).join("/");
-                  return (
-                    relativePath === template.filePath ||
-                    relativePath.startsWith(`${template.filePath}/`)
-                  );
-                }
-              : undefined;
-
           yield* Stream.run(
             codeload.get(tarballPath).pipe(
               HttpClientResponse.stream,
@@ -285,10 +268,30 @@ export class TemplateDownloader extends Context.Tag(
             ),
             NodeSink.fromWritable(
               () =>
-                Tar.x(
-                  { cwd: tmpDir, strip: stripCount, filter: filterFn },
-                  tarFilter,
-                ),
+                Tar.x({
+                  cwd: tmpDir,
+                  strip: stripCount,
+                  filter: (path: string) => {
+                    const parts = path.split("/");
+                    if (parts.length < 2) return false;
+                    const relativePath = parts.slice(1).join("/");
+
+                    if (template._tag === "BuiltinTemplate") {
+                      return relativePath.startsWith(
+                        `packages/templates/${template.name}`,
+                      );
+                    }
+
+                    if (!template.filePath) {
+                      return true;
+                    }
+
+                    return (
+                      relativePath === template.filePath ||
+                      relativePath.startsWith(`${template.filePath}/`)
+                    );
+                  },
+                }),
               (cause) =>
                 new TemplateDownloadError({
                   cause,

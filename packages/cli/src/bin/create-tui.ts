@@ -8,9 +8,9 @@ import {
 } from "@effect/platform-node";
 import { Cause, Console, Effect, Layer, Logger, pipe } from "effect";
 import { cli } from "../cli";
-import { TemplateDownloader } from "../services/template-downloader";
 import { PackageManager } from "../services/package-manager";
 import { Project } from "../services/project";
+import { TemplateDownloader } from "../services/template-downloader";
 import { createLogger } from "../utils/logger";
 
 const MainLive = Layer.mergeAll(
