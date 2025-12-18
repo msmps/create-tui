@@ -1,14 +1,19 @@
 import { Data, Schema } from "effect";
 
-export const builtinTemplates = ["core", "react", "solid"] as const;
-export type BuiltinTemplate = (typeof builtinTemplates)[number];
+/**
+ * Template aliases map friendly names to their GitHub URLs.
+ * Adding a new built-in template is as simple as adding a new entry here.
+ */
+export const TEMPLATE_ALIASES = {
+  core: "https://github.com/msmps/create-tui/tree/main/packages/templates/core",
+  react:
+    "https://github.com/msmps/create-tui/tree/main/packages/templates/react",
+  solid:
+    "https://github.com/msmps/create-tui/tree/main/packages/templates/solid",
+} as const;
 
-// Discriminated union for template sources
-export type TemplateSource = BuiltinTemplateSource | GitHubTemplateSource;
-
-// Helper to check if a string is a built-in template
-const isBuiltinTemplate = (value: string): value is BuiltinTemplate =>
-  builtinTemplates.includes(value as BuiltinTemplate);
+export type TemplateAlias = keyof typeof TEMPLATE_ALIASES;
+export const templateAliases = Object.keys(TEMPLATE_ALIASES) as TemplateAlias[];
 
 /**
  * Parses a GitHub URL and extracts repo information.
@@ -23,7 +28,7 @@ const parseGitHubUrl = (
 ): {
   owner: string;
   repo: string;
-  branch?: string;
+  branch: string | undefined;
   filePath: string;
 } | null => {
   let url: URL;
@@ -57,50 +62,125 @@ const parseGitHubUrl = (
   return null;
 };
 
-// Schema to parse and validate template string (sync parsing, no API calls)
-export const TemplateSourceSchema = Schema.transform(
-  Schema.String,
-  Schema.Any as Schema.Schema<TemplateSource>,
-  {
-    decode: (value: string): TemplateSource => {
-      if (isBuiltinTemplate(value)) {
-        return new BuiltinTemplateSource({ name: value });
-      }
+/**
+ * Parses shorthand syntax for GitHub repositories.
+ * Supports formats like:
+ * - owner/repo
+ * - owner/repo/path/to/template
+ */
+const parseShorthand = (
+  value: string,
+): {
+  owner: string;
+  repo: string;
+  branch: string | undefined;
+  filePath: string;
+} | null => {
+  // Must contain at least one slash and not start with a protocol
+  if (!value.includes("/") || value.includes("://")) {
+    return null;
+  }
 
-      const parsed = parseGitHubUrl(value);
-      if (parsed) {
-        // Branch will be resolved later via API if not specified
-        return new GitHubTemplateSource({
-          owner: parsed.owner,
-          repo: parsed.repo,
-          branch: parsed.branch,
-          filePath: parsed.filePath,
-        });
-      }
+  const parts = value.split("/");
+  if (parts.length < 2) {
+    return null;
+  }
 
-      throw new Error(
-        `Invalid template: "${value}". Use a built-in template (${builtinTemplates.join(", ")}) or a GitHub URL (https://github.com/owner/repo)`,
-      );
-    },
-    encode: (source) => source.displayName,
-  },
-);
+  const [owner, repo, ...pathParts] = parts;
 
-export class BuiltinTemplateSource extends Data.TaggedClass("BuiltinTemplate")<{
-  readonly name: BuiltinTemplate;
-}> {
-  readonly displayName = this.name;
-}
+  // Validate owner and repo look reasonable (not empty, no special chars that would break URLs)
+  if (!owner || !repo || owner.includes(".") || repo.includes(".")) {
+    return null;
+  }
 
+  return {
+    owner,
+    repo,
+    branch: undefined,
+    filePath: pathParts.join("/"),
+  };
+};
+
+/**
+ * Unified template source - all templates are GitHub templates.
+ * "Built-in" templates are simply aliases that resolve to GitHub URLs.
+ */
 export class GitHubTemplateSource extends Data.TaggedClass("GitHubTemplate")<{
   readonly owner: string;
   readonly repo: string;
   readonly branch: string | undefined;
   readonly filePath: string;
+  /** If this template came from an alias, store it for friendly display */
+  readonly alias?: TemplateAlias;
 }> {
-  readonly displayName = this.filePath
-    ? `${this.owner}/${this.repo}/${this.filePath}`
-    : `${this.owner}/${this.repo}`;
+  /** User-friendly name for display */
+  readonly displayName: string = this.alias
+    ? this.alias
+    : this.filePath
+      ? `${this.owner}/${this.repo}/${this.filePath}`
+      : `${this.owner}/${this.repo}`;
 
   readonly repoUrl = `https://github.com/${this.owner}/${this.repo}`;
 }
+
+// For backwards compatibility and simpler typing
+export type TemplateSource = GitHubTemplateSource;
+
+/**
+ * Schema to parse and validate template string.
+ *
+ * Accepts:
+ * - Aliases: "core", "react", "solid"
+ * - Shorthand: "owner/repo", "owner/repo/path"
+ * - Full URLs: "https://github.com/owner/repo/tree/branch/path"
+ */
+export const TemplateSourceSchema = Schema.transform(
+  Schema.String,
+  Schema.Any as Schema.Schema<GitHubTemplateSource>,
+  {
+    decode: (value: string): GitHubTemplateSource => {
+      // 1. Check if it's an alias
+      if (value in TEMPLATE_ALIASES) {
+        const aliasUrl = TEMPLATE_ALIASES[value as TemplateAlias];
+        const parsed = parseGitHubUrl(aliasUrl);
+        if (parsed) {
+          return new GitHubTemplateSource({
+            owner: parsed.owner,
+            repo: parsed.repo,
+            branch: parsed.branch,
+            filePath: parsed.filePath,
+            alias: value as TemplateAlias,
+          });
+        }
+      }
+
+      // 2. Try parsing as a full GitHub URL
+      const urlParsed = parseGitHubUrl(value);
+      if (urlParsed) {
+        return new GitHubTemplateSource({
+          owner: urlParsed.owner,
+          repo: urlParsed.repo,
+          branch: urlParsed.branch,
+          filePath: urlParsed.filePath,
+        });
+      }
+
+      // 3. Try parsing as shorthand (owner/repo or owner/repo/path)
+      const shorthandParsed = parseShorthand(value);
+      if (shorthandParsed) {
+        return new GitHubTemplateSource({
+          owner: shorthandParsed.owner,
+          repo: shorthandParsed.repo,
+          branch: shorthandParsed.branch,
+          filePath: shorthandParsed.filePath,
+        });
+      }
+
+      // 4. Nothing worked - provide helpful error
+      throw new Error(
+        `Invalid template: "${value}". Use an alias (${templateAliases.join(", ")}), shorthand (owner/repo), or GitHub URL (https://github.com/owner/repo)`,
+      );
+    },
+    encode: (source) => source.displayName,
+  },
+);

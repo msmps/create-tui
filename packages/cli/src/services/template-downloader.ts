@@ -12,25 +12,19 @@ import {
   TemplateDownloadError,
   TemplateValidationError,
 } from "../domain/errors";
-import {
-  type BuiltinTemplateSource,
-  GitHubTemplateSource,
-  type TemplateSource,
-} from "../domain/template";
+import { GitHubTemplateSource } from "../domain/template";
 
 /** GitHub template with a guaranteed branch (after resolution) */
 interface ResolvedGitHubTemplate extends GitHubTemplateSource {
   readonly branch: string;
 }
 
-/** Template ready for download (either builtin or resolved GitHub) */
-type ResolvedTemplate = BuiltinTemplateSource | ResolvedGitHubTemplate;
-
 /**
  * Service for downloading project templates from GitHub.
  *
- * Supports both built-in templates (hosted in the create-tui repo)
- * and custom GitHub repository templates.
+ * All templates (including "built-in" ones) are fetched from GitHub.
+ * Built-in templates are simply aliases that resolve to paths in the
+ * create-tui repository.
  */
 export class TemplateDownloader extends Context.Tag(
   "create-tui/services/template-downloader",
@@ -66,9 +60,8 @@ export class TemplateDownloader extends Context.Tag(
 
       /**
        * Resolve the branch for a GitHub template.
-       * @param template - The GitHub template to resolve the branch for.
-       * @returns The resolved GitHub template with the branch.
-       * @throws TemplateValidationError if the branch cannot be resolved.
+       * If branch is already specified, returns as-is.
+       * Otherwise fetches the default branch from GitHub API.
        */
       const resolveBranch = (
         template: GitHubTemplateSource,
@@ -84,8 +77,11 @@ export class TemplateDownloader extends Context.Tag(
             return branch
               ? Effect.succeed(
                   new GitHubTemplateSource({
-                    ...template,
+                    owner: template.owner,
+                    repo: template.repo,
                     branch,
+                    filePath: template.filePath,
+                    alias: template.alias,
                   }) as ResolvedGitHubTemplate,
                 )
               : Effect.fail(
@@ -115,14 +111,12 @@ export class TemplateDownloader extends Context.Tag(
 
       /**
        * Validate that the template exists on GitHub.
-       * @param template - The resolved GitHub template to validate.
-       * @returns A void effect if the template exists.
-       * @throws TemplateValidationError if the template does not exist.
        */
       const validateExists = (
         template: ResolvedGitHubTemplate,
       ): Effect.Effect<void, TemplateValidationError> =>
         Effect.gen(function* () {
+          // Check that the repo/branch exists
           yield* codeload
             .head(
               `/${template.owner}/${template.repo}/tar.gz/${template.branch}`,
@@ -146,6 +140,7 @@ export class TemplateDownloader extends Context.Tag(
               }),
             );
 
+          // If there's a file path, validate it contains a package.json
           if (template.filePath) {
             yield* api
               .get(
@@ -173,21 +168,13 @@ export class TemplateDownloader extends Context.Tag(
         });
 
       /**
-       * Validate the template.
-       * @param template - The template to validate.
-       * @param verbose - Whether to log verbose output.
-       * @returns The validated template.
-       * @throws TemplateValidationError if the template is invalid.
+       * Validate the template by resolving branch and checking existence.
        */
       const validate = (
-        template: TemplateSource,
+        template: GitHubTemplateSource,
         verbose: boolean,
-      ): Effect.Effect<ResolvedTemplate, TemplateValidationError> =>
+      ): Effect.Effect<ResolvedGitHubTemplate, TemplateValidationError> =>
         Effect.gen(function* () {
-          if (template._tag === "BuiltinTemplate") {
-            return template;
-          }
-
           if (verbose) {
             yield* Effect.logInfo(
               `Validating GitHub repository: ${template.repoUrl}`,
@@ -211,30 +198,19 @@ export class TemplateDownloader extends Context.Tag(
 
       /**
        * Download and extract the template.
-       * @param template - The template to download and extract.
-       * @param destPath - The destination path to extract the template to.
-       * @param verbose - Whether to log verbose output.
-       * @returns A void effect if the template is downloaded and extracted.
-       * @throws TemplateDownloadError if the template cannot be downloaded or extracted.
+       * Single unified code path for all templates (built-in and custom).
        */
       const extract = (
-        template: ResolvedTemplate,
+        template: ResolvedGitHubTemplate,
         destPath: string,
         verbose: boolean,
       ): Effect.Effect<void, TemplateDownloadError> =>
         Effect.gen(function* () {
-          const isBuiltin = template._tag === "BuiltinTemplate";
+          const tarballPath = `/${template.owner}/${template.repo}/tar.gz/${template.branch}`;
 
-          const tarballPath = isBuiltin
-            ? "/msmps/create-tui/tar.gz/main"
-            : `/${template.owner}/${template.repo}/tar.gz/${template.branch}`;
-
-          // Calculate how many path segments to strip from the tarball:
-          // - Built-in: strip "create-tui-main/packages/templates/<name>"
-          // - GitHub: strip "<repo>-<branch>/" plus any filePath
-          const stripCount = isBuiltin
-            ? 3 + template.name.split("/").length
-            : 1 + (template.filePath ? template.filePath.split("/").length : 0);
+          // Calculate strip count: repo-branch prefix + any file path segments
+          const stripCount =
+            1 + (template.filePath ? template.filePath.split("/").length : 0);
 
           if (verbose) {
             yield* Effect.logInfo(`Downloading from: ${tarballPath}`);
@@ -274,18 +250,14 @@ export class TemplateDownloader extends Context.Tag(
                   filter: (path: string) => {
                     const parts = path.split("/");
                     if (parts.length < 2) return false;
-                    const relativePath = parts.slice(1).join("/");
 
-                    if (template._tag === "BuiltinTemplate") {
-                      return relativePath.startsWith(
-                        `packages/templates/${template.name}`,
-                      );
-                    }
-
+                    // If no file path filter, include everything
                     if (!template.filePath) {
                       return true;
                     }
 
+                    // Filter to only include files within the template path
+                    const relativePath = parts.slice(1).join("/");
                     return (
                       relativePath === template.filePath ||
                       relativePath.startsWith(`${template.filePath}/`)

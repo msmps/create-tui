@@ -1,14 +1,10 @@
 import { Args, Command, Options, Prompt } from "@effect/cli";
 import { Path } from "@effect/platform";
-import { Effect, Option } from "effect";
+import { Effect, Option, Schema } from "effect";
 import { version } from "../package.json" with { type: "json" };
 import { ProjectSettings } from "./context";
 import type { Config } from "./domain/config";
-import {
-  BuiltinTemplateSource,
-  builtinTemplates,
-  TemplateSourceSchema,
-} from "./domain/template";
+import { TemplateSourceSchema, templateAliases } from "./domain/template";
 import { createProject } from "./handler";
 import {
   validateProjectName,
@@ -36,7 +32,7 @@ const verbose = Options.boolean("verbose").pipe(
 const projectTemplate = Options.text("template").pipe(
   Options.withAlias("t"),
   Options.withDescription(
-    `Template: built-in (${builtinTemplates.join(", ")}) or GitHub URL (https://github.com/owner/repo)`,
+    `Template: alias (${templateAliases.join(", ")}), shorthand (owner/repo), or GitHub URL`,
   ),
   Options.withSchema(TemplateSourceSchema),
   Options.optional,
@@ -64,11 +60,24 @@ function handleCommand({
         Prompt.select({
           message: "Which template do you want to use?",
           choices: [
-            { title: "Core", value: "core" as const },
-            { title: "React", value: "react" as const },
-            { title: "Solid", value: "solid" as const },
+            { title: "Core", value: "core" },
+            { title: "React", value: "react" },
+            { title: "Solid", value: "solid" },
+            { title: "Custom (GitHub URL or shorthand)", value: "__custom__" },
           ],
-        }).pipe(Effect.map((name) => new BuiltinTemplateSource({ name }))),
+        }).pipe(
+          Effect.flatMap((value) =>
+            value === "__custom__"
+              ? Prompt.text({
+                  message:
+                    "Enter template (owner/repo, owner/repo/path, or full GitHub URL):",
+                })
+              : Effect.succeed(value),
+          ),
+          Effect.flatMap((input) =>
+            Schema.decodeUnknown(TemplateSourceSchema)(input),
+          ),
+        ),
     );
 
     const initializedGitRepository =

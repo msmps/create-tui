@@ -13,7 +13,7 @@ bun create tui my-tui-project
 
 When you run `create-tui`, the CLI performs the following steps:
 
-1. **Template Validation** — For custom GitHub templates, validates the repository exists
+1. **Template Validation** — Validates the template exists on GitHub
 2. **Project Directory Setup** — Creates the project directory (or prompts to delete if it already exists)
 3. **Template Download** — Downloads the selected template from GitHub
 4. **Package Configuration** — Updates `package.json` with your project name
@@ -32,53 +32,81 @@ bun create tui
 This will prompt you for:
 
 - Project name
-- Template choice (Core, React, Solid)
+- Template choice (Core, React, Solid, or Custom)
 - Whether to initialize a git repository
 
 ### With Arguments
 
 ```bash
 # Create a React project
-bun create tui --template react my-react-app
+bun create tui -t react my-react-app
 
 # Create a Core project
-bun create tui --template core my-core-app
+bun create tui -t core my-core-app
 
 # Create a Solid project
-bun create tui --template solid my-solid-app
+bun create tui -t solid my-solid-app
 
 # Create a project without git initialization
-bun create tui --template core --disable-git my-app
+bun create tui -t core --disable-git my-app
 ```
 
-### Custom GitHub Templates
+## Template Formats
 
-You can use any GitHub repository as a template by providing the full GitHub URL:
+The CLI supports three formats for specifying templates:
+
+### 1. Aliases (Built-in Templates)
+
+Simple names for the official templates:
 
 ```bash
-# Use a custom GitHub template
-bun create tui --template https://github.com/user/repo my-project
-
-# Use a nested directory within a repository (include tree/branch)
-bun create tui --template https://github.com/user/repo/tree/main/templates/starter my-project
-
-# With verbose output to see detailed progress
-bun create tui --template https://github.com/user/repo -v my-project
+bun create tui -t core my-project
+bun create tui -t react my-project
+bun create tui -t solid my-project
 ```
 
-Custom templates must have a `package.json` file at the template root.
+### 2. Shorthand (owner/repo)
+
+Use any GitHub repository with a shorthand syntax:
+
+```bash
+# Use a repository root as template
+bun create tui -t username/my-template my-project
+
+# Use a nested directory within a repository
+bun create tui -t username/repo/path/to/template my-project
+```
+
+### 3. Full GitHub URL
+
+For maximum clarity or when you need to specify a branch:
+
+```bash
+# Repository root
+bun create tui -t https://github.com/username/repo my-project
+
+# Specific branch and path
+bun create tui -t https://github.com/username/repo/tree/main/templates/starter my-project
+
+# With verbose output to see detailed progress
+bun create tui -t https://github.com/username/repo -v my-project
+```
+
+All templates must have a `package.json` file at the template root.
 
 ## Available Templates
 
-### Built-in Templates
+### Built-in Templates (Aliases)
 
-- **core**: OpenTUI project with core functionality
-- **react**: OpenTUI project with React integration
-- **solid**: OpenTUI project with Solid.js integration
+| Alias   | Description                               |
+| ------- | ----------------------------------------- |
+| `core`  | OpenTUI project with core functionality   |
+| `react` | OpenTUI project with React integration    |
+| `solid` | OpenTUI project with Solid.js integration |
 
 ### Custom Templates
 
-Any public GitHub repository can be used as a template by providing the full GitHub URL. You can also use nested directories by including `tree/branch` in the URL. The template location must contain a valid `package.json`.
+Any public GitHub repository can be used as a template. Use either shorthand (`owner/repo/path`) or full GitHub URLs.
 
 ## Arguments
 
@@ -88,21 +116,21 @@ Any public GitHub repository can be used as a template by providing the full Git
 
 ## Options
 
-| Option          | Alias | Description                                                    |
-| --------------- | ----- | -------------------------------------------------------------- |
-| `--template`    | `-t`  | Template: built-in (core, react, solid) or GitHub URL          |
-| `--disable-git` |       | Skip initializing a git repository                             |
-| `--verbose`     | `-v`  | Show detailed progress during template validation and download |
-| `--help`        | `-h`  | Show help information                                          |
-| `--version`     |       | Show version number                                            |
+| Option          | Alias | Description                                                                 |
+| --------------- | ----- | --------------------------------------------------------------------------- |
+| `--template`    | `-t`  | Template: alias (core, react, solid), shorthand (owner/repo), or GitHub URL |
+| `--disable-git` |       | Skip initializing a git repository                                          |
+| `--verbose`     | `-v`  | Show detailed progress during template validation and download              |
+| `--help`        | `-h`  | Show help information                                                       |
+| `--version`     |       | Show version number                                                         |
 
 ## Update Notifications
 
 The CLI automatically checks for newer versions after each run. If an update is available, you'll see a notification with the command to update:
 
 ```
-⚠ Update available! 1.0.0 -> 1.1.0
-⚠ Run bun add -g create-tui@latest to update
+Update available! 1.0.0 -> 1.1.0
+Run bun add -g create-tui@latest to update
 ```
 
 This check is non-blocking and times out after 3 seconds to avoid slowing down the CLI.
@@ -111,11 +139,11 @@ This check is non-blocking and times out after 3 seconds to avoid slowing down t
 
 The CLI provides helpful error messages for common issues:
 
-| Scenario                | Error Message                                                                                               |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Invalid template format | `Invalid template: "xyz". Use a built-in template (core, react, solid) or a GitHub URL`                     |
-| Repository not found    | `Template repository not found: https://github.com/user/repo`                                               |
-| Missing package.json    | `Invalid template: missing package.json at template root.`                                                  |
+| Scenario                | Error Message                                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------------------------- |
+| Invalid template format | `Invalid template: "xyz". Use an alias (core, react, solid), shorthand (owner/repo), or GitHub URL` |
+| Repository not found    | `Repository not found: owner/repo`                                                                  |
+| Missing package.json    | `Invalid template: missing package.json`                                                            |
 
 ## Development
 
