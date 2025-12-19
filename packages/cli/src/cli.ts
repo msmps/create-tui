@@ -2,8 +2,11 @@ import { Args, Command, Options, Prompt } from "@effect/cli";
 import { Path } from "@effect/platform";
 import { Effect, Option, Schema } from "effect";
 import { version } from "../package.json" with { type: "json" };
-import type { Config } from "./domain/config";
-import { TemplateSourceSchema, templateAliases } from "./domain/template";
+import {
+  type TemplateSource,
+  TemplateSourceSchema,
+  templateAliases,
+} from "./domain/template";
 import { createProject } from "./handler";
 import { ProjectSettings } from "./project-settings";
 import {
@@ -42,16 +45,16 @@ const projectTemplate = Options.text("template").pipe(
   Options.optional,
 );
 
-function handleCommand({
-  projectName,
-  projectTemplate,
-  noGit,
-  noInstall,
-  verbose,
-}: Config) {
+function handleCommand(args: {
+  readonly projectName: Option.Option<string>;
+  readonly projectTemplate: Option.Option<TemplateSource>;
+  readonly noGit: boolean;
+  readonly noInstall: boolean;
+  readonly verbose: boolean;
+}) {
   return Effect.gen(function* () {
     const resolvedProjectName = yield* Option.getOrElse(
-      Option.map(projectName, Effect.succeed),
+      Option.map(args.projectName, Effect.succeed),
       () =>
         Prompt.text({
           message: "What is your project named?",
@@ -60,7 +63,7 @@ function handleCommand({
     );
 
     const resolvedProjectTemplate = yield* Option.getOrElse(
-      Option.map(projectTemplate, Effect.succeed),
+      Option.map(args.projectTemplate, Effect.succeed),
       () =>
         Prompt.select({
           message: "Which template do you want to use?",
@@ -94,9 +97,9 @@ function handleCommand({
         projectName: resolvedProjectName,
         projectPath,
         projectTemplate: resolvedProjectTemplate,
-        initializeGitRepository: !noGit,
-        installDependencies: !noInstall,
-        verbose,
+        skipGit: args.noGit,
+        skipInstall: args.noInstall,
+        verbose: args.verbose,
       }),
     );
   });

@@ -103,7 +103,7 @@ export function createProject() {
       JSON.stringify(packageJson, null, 2),
     );
 
-    if (projectSettings.installDependencies) {
+    if (!projectSettings.skipInstall) {
       yield* packageManager
         .install()
         .pipe(
@@ -113,7 +113,7 @@ export function createProject() {
         );
     }
 
-    if (projectSettings.initializeGitRepository) {
+    if (!projectSettings.skipGit) {
       yield* project.initializeGitRepository().pipe(
         Effect.andThen(
           Effect.logInfo(
