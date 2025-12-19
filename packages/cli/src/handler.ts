@@ -107,7 +107,7 @@ export function createProject() {
         ),
       );
 
-    if (projectSettings.initializedGitRepository) {
+    if (projectSettings.initializeGitRepository) {
       yield* project.initializeGitRepository().pipe(
         Effect.andThen(
           Effect.logInfo(

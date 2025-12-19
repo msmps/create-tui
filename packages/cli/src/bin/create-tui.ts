@@ -19,7 +19,12 @@ const MainLive = Layer.mergeAll(
   PackageManager.layer,
 ).pipe(
   Layer.provide(Logger.replace(Logger.defaultLogger, createLogger())),
-  Layer.provide(CliConfig.layer({ showBuiltIns: false })),
+  Layer.provideMerge(
+    CliConfig.layer({
+      showBuiltIns: false,
+      showTypes: false,
+    }),
+  ),
   Layer.provideMerge(NodeContext.layer),
   Layer.provideMerge(NodeHttpClient.layer),
 );

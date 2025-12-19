@@ -4,7 +4,7 @@ import type { TemplateSource } from "./template";
 export interface Config {
   readonly projectName: Option.Option<string>;
   readonly projectTemplate: Option.Option<TemplateSource>;
-  readonly disableGitRepositoryInitialization: boolean;
+  readonly noGit: boolean;
   readonly verbose: boolean;
 }
 
@@ -12,6 +12,6 @@ export interface ProjectConfig {
   readonly projectName: string;
   readonly projectPath: string;
   readonly projectTemplate: TemplateSource;
-  readonly initializedGitRepository: boolean;
+  readonly initializeGitRepository: boolean;
   readonly verbose: boolean;
 }

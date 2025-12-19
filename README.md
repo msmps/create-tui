@@ -60,7 +60,7 @@ Custom templates must have a `package.json` at the template root.
 ```
 Options:
   -t, --template <template>  Template: alias (core, react, solid), shorthand (owner/repo), or GitHub URL
-  --disable-git              Skip initializing a git repository
+  --no-git                   Skip initializing a git repository
   -v, --verbose              Show detailed progress during template operations
   -h, --help                 Show help documentation
   --version                  Show the version of the application
@@ -82,7 +82,7 @@ bun create tui -t username/my-template my-project
 bun create tui -t https://github.com/user/repo -v my-project
 
 # Skip git initialization
-bun create tui -t core --disable-git my-project
+bun create tui -t core --no-git my-project
 ```
 
 ## Workspace Structure
