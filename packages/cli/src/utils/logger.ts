@@ -2,6 +2,7 @@ import * as Ansi from "@effect/printer-ansi/Ansi";
 import * as AnsiDoc from "@effect/printer-ansi/AnsiDoc";
 import { Cause, Inspectable } from "effect";
 import * as Arr from "effect/Array";
+import { prettyErrors } from "effect/Cause";
 import * as Logger from "effect/Logger";
 import type * as LogLevel from "effect/LogLevel";
 
@@ -15,6 +16,10 @@ const logLevelColors: Record<LogLevel.LogLevel["_tag"], Ansi.Ansi> = {
   Error: Ansi.red,
   Fatal: Ansi.combine(Ansi.bgRedBright, Ansi.black),
 };
+
+interface PrettyErrorWithHint extends Cause.PrettyError {
+  readonly hint?: string;
+}
 
 export function createLogger() {
   return Logger.make(({ logLevel, message, cause }) => {
@@ -46,11 +51,29 @@ export function createLogger() {
     }
 
     if (!Cause.isEmpty(cause)) {
-      firstLine = AnsiDoc.catWithSpace(
-        firstLine,
-        AnsiDoc.text(Cause.pretty(cause, { renderErrorCause: true })),
-      );
-      console.log(AnsiDoc.render(firstLine, { style: "pretty" }));
+      for (const error of prettyErrors(cause) as PrettyErrorWithHint[]) {
+        console.log(
+          AnsiDoc.render(
+            AnsiDoc.catWithSpace(firstLine, AnsiDoc.text(error.message)),
+            { style: "pretty" },
+          ),
+        );
+
+        if (error?.hint) {
+          console.log(
+            AnsiDoc.render(
+              AnsiDoc.catWithSpace(
+                firstLine,
+                AnsiDoc.hsep([
+                  AnsiDoc.text("↳"),
+                  AnsiDoc.text(error.hint),
+                ]).pipe(AnsiDoc.annotate(Ansi.cyan)),
+              ),
+              { style: "pretty" },
+            ),
+          );
+        }
+      }
     }
 
     if (messageIndex < messages.length) {

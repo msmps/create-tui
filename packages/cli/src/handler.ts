@@ -24,6 +24,7 @@ export function createProject() {
           new CreateProjectError({
             cause,
             message: "Failed to check if directory exists.",
+            hint: "Check that you have read permissions for the parent directory.",
           }),
       ),
     );
@@ -46,12 +47,14 @@ export function createProject() {
               new CreateProjectError({
                 cause,
                 message: "Failed to delete directory.",
+                hint: "Try manually removing it.",
               }),
           ),
         );
       } else {
         return yield* new CreateProjectError({
           message: "Directory already exists.",
+          hint: "Use a different project name or remove it.",
         });
       }
     }
@@ -87,6 +90,7 @@ export function createProject() {
               new CreateProjectError({
                 cause,
                 message: "Failed to parse package.json",
+                hint: "The template's package.json may be malformed. Try a different template.",
               }),
           }),
         ),

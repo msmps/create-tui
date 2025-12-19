@@ -87,6 +87,7 @@ export class TemplateDownloader extends Context.Tag(
               : Effect.fail(
                   new TemplateValidationError({
                     message: `Could not determine default branch for ${template.owner}/${template.repo}`,
+                    hint: "Specify a branch in the URL: https://github.com/owner/repo/tree/branch",
                   }),
                 );
           }),
@@ -96,6 +97,7 @@ export class TemplateDownloader extends Context.Tag(
                 new TemplateValidationError({
                   cause,
                   message: "Failed to connect to GitHub API",
+                  hint: "Check your internet connection and try again.",
                 }),
               ),
             ResponseError: (cause) =>
@@ -103,6 +105,7 @@ export class TemplateDownloader extends Context.Tag(
                 new TemplateValidationError({
                   cause,
                   message: `Repository not found: ${template.owner}/${template.repo}`,
+                  hint: "Verify the repository exists and is public.",
                 }),
               ),
           }),
@@ -128,13 +131,15 @@ export class TemplateDownloader extends Context.Tag(
                     new TemplateValidationError({
                       cause,
                       message: "Failed to connect to GitHub",
+                      hint: "Check your internet connection and try again.",
                     }),
                   ),
                 ResponseError: (cause) =>
                   Effect.fail(
                     new TemplateValidationError({
                       cause,
-                      message: `Repository or branch not found: ${template.owner}/${template.repo}@${template.branch}`,
+                      message: "Repository or branch not found.",
+                      hint: "Verify the repository, branch, and path all exist.",
                     }),
                   ),
               }),
@@ -153,13 +158,15 @@ export class TemplateDownloader extends Context.Tag(
                       new TemplateValidationError({
                         cause,
                         message: "Failed to connect to GitHub API",
+                        hint: "Check your internet connection and try again.",
                       }),
                     ),
                   ResponseError: (cause) =>
                     Effect.fail(
                       new TemplateValidationError({
                         cause,
-                        message: `Template path not found or missing package.json: ${template.displayName}`,
+                        message: `Template path not found or missing package.json`,
+                        hint: "Templates must contain a package.json file at the root.",
                       }),
                     ),
                 }),
@@ -223,6 +230,7 @@ export class TemplateDownloader extends Context.Tag(
                 new TemplateDownloadError({
                   cause,
                   message: "Failed to create temporary directory",
+                  hint: "Check that you have write permissions to the system temp directory.",
                 }),
             ),
           );
@@ -239,6 +247,7 @@ export class TemplateDownloader extends Context.Tag(
                   new TemplateDownloadError({
                     cause,
                     message: `Failed to download: ${template.displayName}`,
+                    hint: "Check your internet connection and try again.",
                   }),
               ),
             ),
@@ -268,6 +277,7 @@ export class TemplateDownloader extends Context.Tag(
                 new TemplateDownloadError({
                   cause,
                   message: "Failed to extract archive",
+                  hint: "The downloaded archive may be corrupted. Try again.",
                 }),
             ),
           );
@@ -286,6 +296,7 @@ export class TemplateDownloader extends Context.Tag(
             return yield* Effect.fail(
               new TemplateDownloadError({
                 message: `No files extracted for template: ${template.displayName}`,
+                hint: "The template path may be incorrect. Verify it exists in the repository.",
               }),
             );
           }
@@ -306,6 +317,7 @@ export class TemplateDownloader extends Context.Tag(
             return yield* Effect.fail(
               new TemplateDownloadError({
                 message: "Invalid template: missing package.json",
+                hint: "Templates must contain a package.json file at the root.",
               }),
             );
           }
@@ -320,6 +332,7 @@ export class TemplateDownloader extends Context.Tag(
                 new TemplateDownloadError({
                   cause,
                   message: "Failed to copy template to project directory",
+                  hint: "Check that you have write permissions to the target directory.",
                 }),
             ),
           );

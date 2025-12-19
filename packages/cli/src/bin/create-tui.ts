@@ -31,12 +31,6 @@ const MainLive = Layer.mergeAll(
 
 cli(process.argv).pipe(
   Effect.catchTags({
-    TemplateValidationError: (cause) =>
-      Effect.logError(`Failed to validate template: ${cause.message}`),
-    TemplateDownloadError: (cause) =>
-      Effect.logError(`Failed to download template: ${cause.message}`),
-    CreateProjectError: (cause) =>
-      Effect.logError(`Failed to create project: ${cause.message}`),
     QuitException: () =>
       pipe(
         Console.log(),
