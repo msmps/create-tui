@@ -65,12 +65,18 @@ export class TemplateDownloader extends Context.Tag(
         HttpClient.mapRequest(
           HttpClientRequest.prependUrl("https://codeload.github.com"),
         ),
+        HttpClient.mapRequest(
+          HttpClientRequest.setHeader("User-Agent", "create-tui"),
+        ),
         HttpClient.filterStatusOk,
       );
 
       const api = httpClient.pipe(
         HttpClient.mapRequest(
           HttpClientRequest.prependUrl("https://api.github.com"),
+        ),
+        HttpClient.mapRequest(
+          HttpClientRequest.setHeader("User-Agent", "create-tui"),
         ),
         HttpClient.filterStatusOk,
       );
