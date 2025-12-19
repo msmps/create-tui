@@ -1,8 +1,8 @@
 import { Command, type CommandExecutor } from "@effect/platform";
 import { Ansi, AnsiDoc } from "@effect/printer-ansi";
 import { Console, Context, Effect, Layer } from "effect";
-import { ProjectSettings } from "../context";
 import { PackageManagerError } from "../domain/errors";
+import { ProjectSettings } from "../project-settings";
 
 export type PackageManagerName = "bun" | "npm" | "pnpm" | "yarn";
 

@@ -7,12 +7,12 @@ import {
 import { NodeSink } from "@effect/platform-node";
 import { Context, Effect, Layer, Stream } from "effect";
 import * as Tar from "tar";
-import { ProjectSettings } from "../context";
 import {
   TemplateDownloadError,
   TemplateValidationError,
 } from "../domain/errors";
 import { GitHubTemplateSource } from "../domain/template";
+import { ProjectSettings } from "../project-settings";
 
 /** GitHub template with a guaranteed branch (after resolution) */
 interface ResolvedGitHubTemplate extends GitHubTemplateSource {

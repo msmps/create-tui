@@ -1,7 +1,7 @@
 import { Command, type CommandExecutor } from "@effect/platform";
 import { Context, Effect, Layer } from "effect";
-import { ProjectSettings } from "../context";
 import { InitializeGitRepositoryError } from "../domain/errors";
+import { ProjectSettings } from "../project-settings";
 
 export class Project extends Context.Tag("create-tui/services/project")<
   Project,

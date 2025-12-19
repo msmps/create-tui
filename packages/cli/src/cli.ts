@@ -2,10 +2,10 @@ import { Args, Command, Options, Prompt } from "@effect/cli";
 import { Path } from "@effect/platform";
 import { Effect, Option, Schema } from "effect";
 import { version } from "../package.json" with { type: "json" };
-import { ProjectSettings } from "./context";
 import type { Config } from "./domain/config";
 import { TemplateSourceSchema, templateAliases } from "./domain/template";
 import { createProject } from "./handler";
+import { ProjectSettings } from "./project-settings";
 import {
   validateProjectName,
   validateProjectNameWithHelpDoc,
