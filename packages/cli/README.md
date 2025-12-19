@@ -132,16 +132,6 @@ Run bun add -g create-tui@latest to update
 
 This check is non-blocking and times out after 3 seconds to avoid slowing down the CLI.
 
-## Error Handling
-
-The CLI provides helpful error messages for common issues:
-
-| Scenario                | Error Message                                                                                       |
-| ----------------------- | --------------------------------------------------------------------------------------------------- |
-| Invalid template format | `Invalid template: "xyz". Use an alias (core, react, solid), shorthand (owner/repo), or GitHub URL` |
-| Repository not found    | `Repository not found: owner/repo`                                                                  |
-| Missing package.json    | `Invalid template: missing package.json`                                                            |
-
 ## Development
 
 ```bash
