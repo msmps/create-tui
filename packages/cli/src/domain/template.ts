@@ -123,9 +123,6 @@ export class GitHubTemplateSource extends Data.TaggedClass("GitHubTemplate")<{
   readonly repoUrl = `https://github.com/${this.owner}/${this.repo}`;
 }
 
-// For backwards compatibility and simpler typing
-export type TemplateSource = GitHubTemplateSource;
-
 /**
  * Schema to parse and validate template string.
  *

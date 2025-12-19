@@ -3,7 +3,7 @@ import { Path } from "@effect/platform";
 import { Effect, Option, Schema } from "effect";
 import { version } from "../package.json" with { type: "json" };
 import {
-  type TemplateSource,
+  type GitHubTemplateSource,
   TemplateSourceSchema,
   templateAliases,
 } from "./domain/template";
@@ -47,7 +47,7 @@ const projectTemplate = Options.text("template").pipe(
 
 function handleCommand(args: {
   readonly projectName: Option.Option<string>;
-  readonly projectTemplate: Option.Option<TemplateSource>;
+  readonly projectTemplate: Option.Option<GitHubTemplateSource>;
   readonly noGit: boolean;
   readonly noInstall: boolean;
   readonly verbose: boolean;
