@@ -3,9 +3,31 @@ import { Context, Effect, Layer } from "effect";
 import { InitializeGitRepositoryError } from "../domain/errors";
 import { ProjectSettings } from "../project-settings";
 
+/**
+ * Service for project-level operations.
+ *
+ * Provides functionality for initializing and configuring the project,
+ * such as setting up a git repository.
+ *
+ * @example
+ * ```ts
+ * const project = yield* Project;
+ * yield* project.initializeGitRepository();
+ * ```
+ */
 export class Project extends Context.Tag("create-tui/services/project")<
   Project,
   {
+    /**
+     * Initializes a new git repository in the project directory.
+     *
+     * This will:
+     * 1. Check if already inside a git repository (fails if so)
+     * 2. Run `git init`
+     * 3. Create a `main` branch if no default branch is configured
+     * 4. Stage all files with `git add -A`
+     * 5. Create an initial commit
+     */
     readonly initializeGitRepository: () => Effect.Effect<
       void,
       InitializeGitRepositoryError,

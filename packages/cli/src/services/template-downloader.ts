@@ -25,12 +25,29 @@ interface ResolvedGitHubTemplate extends GitHubTemplateSource {
  * All templates (including "built-in" ones) are fetched from GitHub.
  * Built-in templates are simply aliases that resolve to paths in the
  * create-tui repository.
+ *
+ * @example
+ * ```ts
+ * const downloader = yield* TemplateDownloader;
+ * yield* downloader.download();
+ * ```
  */
 export class TemplateDownloader extends Context.Tag(
   "create-tui/services/template-downloader",
 )<
   TemplateDownloader,
   {
+    /**
+     * Downloads and extracts the project template.
+     *
+     * This will:
+     * 1. Resolve the branch if not specified (fetches default branch from GitHub API)
+     * 2. Validate the template exists and contains a package.json
+     * 3. Download the repository tarball
+     * 4. Extract only the template files to the project directory
+     *
+     * Uses the template configuration from {@link ProjectSettings}.
+     */
     readonly download: () => Effect.Effect<
       void,
       TemplateValidationError | TemplateDownloadError,

@@ -6,6 +6,11 @@ import { ProjectSettings } from "../project-settings";
 
 export type PackageManagerName = "bun" | "npm" | "pnpm" | "yarn";
 
+/**
+ * Detects the package manager from the `npm_config_user_agent` environment variable.
+ * This variable is automatically set by npm, yarn, pnpm, and bun when running scripts.
+ * Falls back to "npm" if the variable is not set or unrecognized.
+ */
 const detectPackageManager = Config.string("npm_config_user_agent").pipe(
   Config.withDefault("npm"),
   Config.map((userAgent) => {
@@ -16,12 +21,30 @@ const detectPackageManager = Config.string("npm_config_user_agent").pipe(
   }),
 );
 
+/**
+ * Service for detecting and invoking the package manager.
+ *
+ * Automatically detects which package manager was used to run the CLI
+ * (npm, yarn, pnpm, or bun) and provides methods to install dependencies.
+ *
+ * @example
+ * ```ts
+ * const pm = yield* PackageManager;
+ * console.log(pm.name); // "bun" | "npm" | "pnpm" | "yarn"
+ * yield* pm.install();
+ * ```
+ */
 export class PackageManager extends Context.Tag(
   "create-tui/services/package-manager",
 )<
   PackageManager,
   {
+    /** The detected package manager name */
     readonly name: PackageManagerName;
+    /**
+     * Installs project dependencies using the detected package manager.
+     * Runs the equivalent of `npm install` / `yarn` / `pnpm install` / `bun install`.
+     */
     readonly install: () => Effect.Effect<
       void,
       PackageManagerError,
