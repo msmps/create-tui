@@ -1,11 +1,14 @@
 import { Args, Command, Options, Prompt } from "@effect/cli";
 import { Path } from "@effect/platform";
-import { Effect, Option } from "effect";
+import { Effect, Option, Schema } from "effect";
 import { version } from "../package.json" with { type: "json" };
-import { ProjectSettings } from "./context";
-import type { Config } from "./domain/config";
-import { templates } from "./domain/template";
+import {
+  type GitHubTemplateSource,
+  TemplateSourceSchema,
+  templateAliases,
+} from "./domain/template";
 import { createProject } from "./handler";
+import { ProjectSettings } from "./project-settings";
 import {
   validateProjectName,
   validateProjectNameWithHelpDoc,
@@ -20,24 +23,38 @@ const projectName = Args.directory({
   Args.optional,
 );
 
-const disableGitRepositoryInitialization = Options.boolean("disable-git").pipe(
+const noGit = Options.boolean("no-git").pipe(
   Options.withDescription("Skip initializing a git repository"),
 );
 
-const projectTemplate = Options.choice("template", templates).pipe(
+const noInstall = Options.boolean("no-install").pipe(
+  Options.withDescription("Skip installing dependencies"),
+);
+
+const verbose = Options.boolean("verbose").pipe(
+  Options.withAlias("v"),
+  Options.withDescription("Show detailed progress during template operations"),
+);
+
+const projectTemplate = Options.text("template").pipe(
   Options.withAlias("t"),
-  Options.withDescription("The template to use for the project"),
+  Options.withDescription(
+    `Template: alias (${templateAliases.join(", ")}), shorthand (owner/repo), or GitHub URL`,
+  ),
+  Options.withSchema(TemplateSourceSchema),
   Options.optional,
 );
 
-function handleCommand({
-  projectName,
-  projectTemplate,
-  disableGitRepositoryInitialization,
-}: Config) {
+function handleCommand(args: {
+  readonly projectName: Option.Option<string>;
+  readonly projectTemplate: Option.Option<GitHubTemplateSource>;
+  readonly noGit: boolean;
+  readonly noInstall: boolean;
+  readonly verbose: boolean;
+}) {
   return Effect.gen(function* () {
     const resolvedProjectName = yield* Option.getOrElse(
-      Option.map(projectName, Effect.succeed),
+      Option.map(args.projectName, Effect.succeed),
       () =>
         Prompt.text({
           message: "What is your project named?",
@@ -46,7 +63,7 @@ function handleCommand({
     );
 
     const resolvedProjectTemplate = yield* Option.getOrElse(
-      Option.map(projectTemplate, Effect.succeed),
+      Option.map(args.projectTemplate, Effect.succeed),
       () =>
         Prompt.select({
           message: "Which template do you want to use?",
@@ -54,17 +71,22 @@ function handleCommand({
             { title: "Core", value: "core" },
             { title: "React", value: "react" },
             { title: "Solid", value: "solid" },
+            { title: "Custom (GitHub URL or shorthand)", value: "__custom__" },
           ],
-        }),
+        }).pipe(
+          Effect.flatMap((value) =>
+            value === "__custom__"
+              ? Prompt.text({
+                  message:
+                    "Enter template (owner/repo, owner/repo/path, or full GitHub URL):",
+                })
+              : Effect.succeed(value),
+          ),
+          Effect.flatMap((input) =>
+            Schema.decodeUnknown(TemplateSourceSchema)(input),
+          ),
+        ),
     );
-
-    const initializedGitRepository =
-      disableGitRepositoryInitialization === false
-        ? yield* Prompt.confirm({
-            message: "Do you want to initialize a git repository?",
-            initial: true,
-          })
-        : false;
 
     const projectPath = yield* Path.Path.pipe(
       Effect.map((path) => path.resolve(resolvedProjectName)),
@@ -75,7 +97,9 @@ function handleCommand({
         projectName: resolvedProjectName,
         projectPath,
         projectTemplate: resolvedProjectTemplate,
-        initializedGitRepository,
+        skipGit: args.noGit,
+        skipInstall: args.noInstall,
+        verbose: args.verbose,
       }),
     );
   });
@@ -84,7 +108,9 @@ function handleCommand({
 const command = Command.make("create-tui", {
   projectName,
   projectTemplate,
-  disableGitRepositoryInitialization,
+  noGit,
+  noInstall,
+  verbose,
 }).pipe(
   Command.withDescription("Create a new OpenTUI project from a template"),
   Command.withHandler(handleCommand),

@@ -104,7 +104,7 @@ export function validateProjectName(
   }
   if (/[~'!()*]/.test(name.split("/").slice(-1)[0])) {
     return invalid(
-      "Project name must not contain the special scharacters ~'!()*",
+      "Project name must not contain the special characters ~'!()*",
     );
   }
   const isNodeBuiltin = nodeBuiltins.some((builtinName) => {

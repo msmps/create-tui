@@ -1,15 +1,10 @@
-import type { Option } from "effect";
-import type { Template } from "./template";
-
-export interface Config {
-  readonly projectName: Option.Option<string>;
-  readonly projectTemplate: Option.Option<Template>;
-  readonly disableGitRepositoryInitialization: boolean;
-}
+import type { GitHubTemplateSource } from "./template";
 
 export interface ProjectConfig {
   readonly projectName: string;
   readonly projectPath: string;
-  readonly projectTemplate: Template;
-  readonly initializedGitRepository: boolean;
+  readonly projectTemplate: GitHubTemplateSource;
+  readonly skipGit: boolean;
+  readonly skipInstall: boolean;
+  readonly verbose: boolean;
 }

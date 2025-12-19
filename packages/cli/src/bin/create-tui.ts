@@ -8,28 +8,29 @@ import {
 } from "@effect/platform-node";
 import { Cause, Console, Effect, Layer, Logger, pipe } from "effect";
 import { cli } from "../cli";
-import { GitHub } from "../services/github";
 import { PackageManager } from "../services/package-manager";
 import { Project } from "../services/project";
+import { TemplateDownloader } from "../services/template-downloader";
 import { createLogger } from "../utils/logger";
 
 const MainLive = Layer.mergeAll(
-  GitHub.layer,
+  TemplateDownloader.layer,
   Project.layer,
   PackageManager.layer,
 ).pipe(
   Layer.provide(Logger.replace(Logger.defaultLogger, createLogger())),
-  Layer.provide(CliConfig.layer({ showBuiltIns: false })),
+  Layer.provideMerge(
+    CliConfig.layer({
+      showBuiltIns: false,
+      showTypes: false,
+    }),
+  ),
   Layer.provideMerge(NodeContext.layer),
-  Layer.provide(NodeHttpClient.layer),
+  Layer.provideMerge(NodeHttpClient.layer),
 );
 
 cli(process.argv).pipe(
   Effect.catchTags({
-    TemplateDownloadError: (cause) =>
-      Effect.logError(`Failed to download template: ${cause.message}`),
-    CreateProjectError: (cause) =>
-      Effect.logError(`Failed to create project: ${cause.message}`),
     QuitException: () =>
       pipe(
         Console.log(),

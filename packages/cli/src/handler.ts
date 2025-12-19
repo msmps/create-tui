@@ -2,15 +2,16 @@ import { Prompt } from "@effect/cli";
 import { FileSystem, Path } from "@effect/platform";
 import { Ansi, AnsiDoc } from "@effect/printer-ansi";
 import { Effect } from "effect";
-import { ProjectSettings } from "./context";
 import { CreateProjectError } from "./domain/errors";
-import { GitHub } from "./services/github";
+import { ProjectSettings } from "./project-settings";
 import { PackageManager } from "./services/package-manager";
 import { Project } from "./services/project";
+import { TemplateDownloader } from "./services/template-downloader";
+import { checkForUpdates } from "./utils/update-check";
 
 export function createProject() {
   return Effect.gen(function* () {
-    const github = yield* GitHub;
+    const templateDownloader = yield* TemplateDownloader;
     const path = yield* Path.Path;
     const project = yield* Project;
     const fs = yield* FileSystem.FileSystem;
@@ -23,6 +24,7 @@ export function createProject() {
           new CreateProjectError({
             cause,
             message: "Failed to check if directory exists.",
+            hint: "Check that you have read permissions for the parent directory.",
           }),
       ),
     );
@@ -38,21 +40,27 @@ export function createProject() {
         ]),
       );
 
-      if (yield* Prompt.confirm({ message: "Would you like to delete it?" })) {
-        yield* fs.remove(projectSettings.projectPath, { recursive: true }).pipe(
-          Effect.mapError(
-            (cause) =>
-              new CreateProjectError({
-                cause,
-                message: "Failed to delete directory.",
-              }),
-          ),
-        );
-      } else {
+      const shouldDelete = yield* Prompt.confirm({
+        message: "Would you like to delete it?",
+      });
+
+      if (!shouldDelete) {
         return yield* new CreateProjectError({
           message: "Directory already exists.",
+          hint: "Use a different project name or remove it.",
         });
       }
+
+      yield* fs.remove(projectSettings.projectPath, { recursive: true }).pipe(
+        Effect.mapError(
+          (cause) =>
+            new CreateProjectError({
+              cause,
+              message: "Failed to delete directory.",
+              hint: "Try manually removing it.",
+            }),
+        ),
+      );
     }
 
     yield* Effect.logInfo(
@@ -67,35 +75,52 @@ export function createProject() {
     yield* Effect.logInfo(
       AnsiDoc.hsep([
         AnsiDoc.text("Initializing project with the"),
-        AnsiDoc.text(projectSettings.projectTemplate).pipe(
+        AnsiDoc.text(projectSettings.projectTemplate.displayName).pipe(
           AnsiDoc.annotate(Ansi.green),
         ),
         AnsiDoc.text("template"),
       ]),
     );
 
-    yield* github.downloadTemplate(); // Short-circuit if download fails
+    yield* templateDownloader.download();
 
-    const packageJson = yield* fs
-      .readFileString(path.join(projectSettings.projectPath, "package.json"))
-      .pipe(Effect.map((json) => JSON.parse(json)));
+    const packageJsonPath = path.join(
+      projectSettings.projectPath,
+      "package.json",
+    );
+
+    const packageJson = yield* fs.readFileString(packageJsonPath).pipe(
+      Effect.flatMap((json) =>
+        Effect.try({
+          try: () => JSON.parse(json),
+          catch: (cause) =>
+            new CreateProjectError({
+              cause,
+              message: "Failed to parse package.json",
+              hint: "The template's package.json may be malformed. Try a different template.",
+            }),
+        }),
+      ),
+    );
 
     packageJson.name = projectSettings.projectName;
 
     yield* fs.writeFileString(
-      path.join(projectSettings.projectPath, "package.json"),
+      packageJsonPath,
       JSON.stringify(packageJson, null, 2),
     );
 
-    yield* packageManager
-      .install()
-      .pipe(
-        Effect.catchAll((cause) =>
-          Effect.logError(`Package installation failed: ${cause.message}`),
-        ),
-      );
+    if (!projectSettings.skipInstall) {
+      yield* packageManager
+        .install()
+        .pipe(
+          Effect.catchAll((cause) =>
+            Effect.logError(`Package installation failed: ${cause.message}`),
+          ),
+        );
+    }
 
-    if (projectSettings.initializedGitRepository) {
+    if (!projectSettings.skipGit) {
       yield* project.initializeGitRepository().pipe(
         Effect.andThen(
           Effect.logInfo(
@@ -124,5 +149,10 @@ export function createProject() {
         ),
       ]),
     );
+
+    // Check for updates after project creation
+    yield* checkForUpdates({
+      packageManager: packageManager.name,
+    });
   });
 }
