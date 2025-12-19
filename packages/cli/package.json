@@ -1,6 +1,6 @@
 {
   "name": "create-tui",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "CLI tool for creating OpenTUI projects from templates",
   "type": "module",
   "sideEffects": false,
@@ -33,17 +33,17 @@
   },
   "homepage": "https://github.com/msmps/create-tui#readme",
   "dependencies": {
-    "@effect/cli": "^0.72.1",
-    "@effect/platform": "^0.93.3",
-    "@effect/platform-node": "^0.101.1",
+    "@effect/cli": "^0.73.0",
+    "@effect/platform": "^0.94.0",
+    "@effect/platform-node": "^0.104.0",
     "@effect/printer": "^0.47.0",
     "@effect/printer-ansi": "^0.47.0",
-    "effect": "^3.19.6",
+    "effect": "^3.19.13",
     "semver": "^7.7.3",
     "tar": "^7.5.2"
   },
   "devDependencies": {
-    "@effect/language-service": "^0.56.0",
+    "@effect/language-service": "^0.62.4",
     "@types/bun": "latest",
     "@types/semver": "^7.7.1",
     "bunchee": "^6.6.2"
