@@ -40,23 +40,27 @@ export function createProject() {
         ]),
       );
 
-      if (yield* Prompt.confirm({ message: "Would you like to delete it?" })) {
-        yield* fs.remove(projectSettings.projectPath, { recursive: true }).pipe(
-          Effect.mapError(
-            (cause) =>
-              new CreateProjectError({
-                cause,
-                message: "Failed to delete directory.",
-                hint: "Try manually removing it.",
-              }),
-          ),
-        );
-      } else {
+      const shouldDelete = yield* Prompt.confirm({
+        message: "Would you like to delete it?",
+      });
+
+      if (!shouldDelete) {
         return yield* new CreateProjectError({
           message: "Directory already exists.",
           hint: "Use a different project name or remove it.",
         });
       }
+
+      yield* fs.remove(projectSettings.projectPath, { recursive: true }).pipe(
+        Effect.mapError(
+          (cause) =>
+            new CreateProjectError({
+              cause,
+              message: "Failed to delete directory.",
+              hint: "Try manually removing it.",
+            }),
+        ),
+      );
     }
 
     yield* Effect.logInfo(
@@ -80,26 +84,29 @@ export function createProject() {
 
     yield* templateDownloader.download();
 
-    const packageJson = yield* fs
-      .readFileString(path.join(projectSettings.projectPath, "package.json"))
-      .pipe(
-        Effect.flatMap((json) =>
-          Effect.try({
-            try: () => JSON.parse(json),
-            catch: (cause) =>
-              new CreateProjectError({
-                cause,
-                message: "Failed to parse package.json",
-                hint: "The template's package.json may be malformed. Try a different template.",
-              }),
-          }),
-        ),
-      );
+    const packageJsonPath = path.join(
+      projectSettings.projectPath,
+      "package.json",
+    );
+
+    const packageJson = yield* fs.readFileString(packageJsonPath).pipe(
+      Effect.flatMap((json) =>
+        Effect.try({
+          try: () => JSON.parse(json),
+          catch: (cause) =>
+            new CreateProjectError({
+              cause,
+              message: "Failed to parse package.json",
+              hint: "The template's package.json may be malformed. Try a different template.",
+            }),
+        }),
+      ),
+    );
 
     packageJson.name = projectSettings.projectName;
 
     yield* fs.writeFileString(
-      path.join(projectSettings.projectPath, "package.json"),
+      packageJsonPath,
       JSON.stringify(packageJson, null, 2),
     );
 
