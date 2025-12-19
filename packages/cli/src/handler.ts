@@ -99,13 +99,15 @@ export function createProject() {
       JSON.stringify(packageJson, null, 2),
     );
 
-    yield* packageManager
-      .install()
-      .pipe(
-        Effect.catchAll((cause) =>
-          Effect.logError(`Package installation failed: ${cause.message}`),
-        ),
-      );
+    if (projectSettings.installDependencies) {
+      yield* packageManager
+        .install()
+        .pipe(
+          Effect.catchAll((cause) =>
+            Effect.logError(`Package installation failed: ${cause.message}`),
+          ),
+        );
+    }
 
     if (projectSettings.initializeGitRepository) {
       yield* project.initializeGitRepository().pipe(

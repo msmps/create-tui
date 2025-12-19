@@ -24,6 +24,10 @@ const noGit = Options.boolean("no-git").pipe(
   Options.withDescription("Skip initializing a git repository"),
 );
 
+const noInstall = Options.boolean("no-install").pipe(
+  Options.withDescription("Skip installing dependencies"),
+);
+
 const verbose = Options.boolean("verbose").pipe(
   Options.withAlias("v"),
   Options.withDescription("Show detailed progress during template operations"),
@@ -42,6 +46,7 @@ function handleCommand({
   projectName,
   projectTemplate,
   noGit,
+  noInstall,
   verbose,
 }: Config) {
   return Effect.gen(function* () {
@@ -90,6 +95,7 @@ function handleCommand({
         projectPath,
         projectTemplate: resolvedProjectTemplate,
         initializeGitRepository: !noGit,
+        installDependencies: !noInstall,
         verbose,
       }),
     );
@@ -100,6 +106,7 @@ const command = Command.make("create-tui", {
   projectName,
   projectTemplate,
   noGit,
+  noInstall,
   verbose,
 }).pipe(
   Command.withDescription("Create a new OpenTUI project from a template"),

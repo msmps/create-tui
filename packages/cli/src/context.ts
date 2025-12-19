@@ -11,6 +11,7 @@ export class ProjectSettings extends Context.Tag(
     readonly projectPath: string;
     readonly projectTemplate: TemplateSource;
     readonly initializeGitRepository: boolean;
+    readonly installDependencies: boolean;
     readonly verbose: boolean;
   }
 >() {

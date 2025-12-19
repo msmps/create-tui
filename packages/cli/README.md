@@ -33,6 +33,7 @@ This will prompt you for:
 
 - Project name
 - Template choice (Core, React, Solid, or Custom)
+
 ### With Arguments
 
 ```bash
@@ -44,9 +45,6 @@ bun create tui -t core my-core-app
 
 # Create a Solid project
 bun create tui -t solid my-solid-app
-
-# Create a project without git initialization
-bun create tui -t core --no-git my-app
 ```
 
 ## Template Formats
@@ -114,13 +112,14 @@ Any public GitHub repository can be used as a template. Use either shorthand (`o
 
 ## Options
 
-| Option       | Alias | Description                                                                 |
-| ------------ | ----- | --------------------------------------------------------------------------- |
-| `--template` | `-t`  | Template: alias (core, react, solid), shorthand (owner/repo), or GitHub URL |
-| `--no-git`   |       | Skip initializing a git repository                                          |
-| `--verbose`  | `-v`  | Show detailed progress during template validation and download              |
-| `--help`     | `-h`  | Show help information                                                       |
-| `--version`  |       | Show version number                                                         |
+| Option         | Alias | Description                                                                 |
+| -------------- | ----- | --------------------------------------------------------------------------- |
+| `--template`   | `-t`  | Template: alias (core, react, solid), shorthand (owner/repo), or GitHub URL |
+| `--no-git`     |       | Skip initializing a git repository                                          |
+| `--no-install` |       | Skip installing dependencies                                                |
+| `--verbose`    | `-v`  | Show detailed progress during template validation and download              |
+| `--help`       | `-h`  | Show help information                                                       |
+| `--version`    |       | Show version number                                                         |
 
 ## Update Notifications
 
