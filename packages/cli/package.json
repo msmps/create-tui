@@ -1,6 +1,6 @@
 {
   "name": "create-tui",
-  "version": "0.0.7",
+  "version": "0.0.9",
   "description": "CLI tool for creating OpenTUI projects from templates",
   "type": "module",
   "sideEffects": false,
