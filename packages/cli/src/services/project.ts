@@ -36,69 +36,65 @@ export class Project extends Context.Tag("create-tui/services/project")<
         );
       });
 
-      const initializeGitRepository = () =>
-        Effect.gen(function* () {
-          const isInsideWorkTree = yield* executeCommand(
-            "git",
-            "rev-parse",
-            "--is-inside-work-tree",
+      const initializeGitRepository = Effect.fn(function* () {
+        const isInsideWorkTree = yield* executeCommand(
+          "git",
+          "rev-parse",
+          "--is-inside-work-tree",
+        );
+
+        if (isInsideWorkTree) {
+          return yield* Effect.fail(
+            new InitializeGitRepositoryError({
+              message: "Already inside a git repository.",
+            }),
           );
+        }
 
-          if (isInsideWorkTree) {
-            return yield* Effect.fail(
-              new InitializeGitRepositoryError({
-                message: "Already inside a git repository.",
-              }),
-            );
-          }
+        const initializeRepositoryResult = yield* executeCommand("git", "init");
 
-          const initializeRepositoryResult = yield* executeCommand(
-            "git",
-            "init",
+        if (!initializeRepositoryResult) {
+          return yield* Effect.fail(
+            new InitializeGitRepositoryError({
+              message: "Failed to initialize git repository.",
+            }),
           );
+        }
 
-          if (!initializeRepositoryResult) {
-            return yield* Effect.fail(
-              new InitializeGitRepositoryError({
-                message: "Failed to initialize git repository.",
-              }),
-            );
-          }
+        const hasDefaultBranch = yield* executeCommand(
+          "git",
+          "config",
+          "init.defaultBranch",
+        );
 
-          const hasDefaultBranch = yield* executeCommand(
-            "git",
-            "config",
-            "init.defaultBranch",
+        if (!hasDefaultBranch) {
+          yield* executeCommand("git", "checkout", "-b", "main");
+        }
+
+        const addAllResult = yield* executeCommand("git", "add", "-A");
+        if (!addAllResult) {
+          return yield* Effect.fail(
+            new InitializeGitRepositoryError({
+              message: "Failed to add all files to git repository.",
+            }),
           );
+        }
 
-          if (!hasDefaultBranch) {
-            yield* executeCommand("git", "checkout", "-b", "main");
-          }
+        const commitResult = yield* executeCommand(
+          "git",
+          "commit",
+          "-m",
+          "Initial commit from create-tui",
+        );
 
-          const addAllResult = yield* executeCommand("git", "add", "-A");
-          if (!addAllResult) {
-            return yield* Effect.fail(
-              new InitializeGitRepositoryError({
-                message: "Failed to add all files to git repository.",
-              }),
-            );
-          }
-
-          const commitResult = yield* executeCommand(
-            "git",
-            "commit",
-            "-m",
-            "Initial commit from create-tui",
+        if (!commitResult) {
+          return yield* Effect.fail(
+            new InitializeGitRepositoryError({
+              message: "Failed to commit to git repository.",
+            }),
           );
-
-          if (!commitResult) {
-            return yield* Effect.fail(
-              new InitializeGitRepositoryError({
-                message: "Failed to commit to git repository.",
-              }),
-            );
-          }
-        });
+        }
+      });
 
       return Project.of({
         initializeGitRepository,

@@ -63,14 +63,14 @@ export class TemplateDownloader extends Context.Tag(
        * If branch is already specified, returns as-is.
        * Otherwise fetches the default branch from GitHub API.
        */
-      const resolveBranch = (
+      const resolveBranch = Effect.fn(function* (
         template: GitHubTemplateSource,
-      ): Effect.Effect<ResolvedGitHubTemplate, TemplateValidationError> => {
+      ) {
         if (template.branch) {
-          return Effect.succeed(template as ResolvedGitHubTemplate);
+          return template as ResolvedGitHubTemplate;
         }
 
-        return api.get(`/repos/${template.owner}/${template.repo}`).pipe(
+        return yield* api.get(`/repos/${template.owner}/${template.repo}`).pipe(
           Effect.flatMap((res) => res.json),
           Effect.flatMap((data) => {
             const branch = (data as { default_branch?: string }).default_branch;
@@ -110,19 +110,43 @@ export class TemplateDownloader extends Context.Tag(
               ),
           }),
         );
-      };
+      });
 
       /**
        * Validate that the template exists on GitHub.
        */
-      const validateExists = (
+      const validateExists = Effect.fn(function* (
         template: ResolvedGitHubTemplate,
-      ): Effect.Effect<void, TemplateValidationError> =>
-        Effect.gen(function* () {
-          // Check that the repo/branch exists
-          yield* codeload
-            .head(
-              `/${template.owner}/${template.repo}/tar.gz/${template.branch}`,
+      ) {
+        // Check that the repo/branch exists
+        yield* codeload
+          .head(`/${template.owner}/${template.repo}/tar.gz/${template.branch}`)
+          .pipe(
+            Effect.catchTags({
+              RequestError: (cause) =>
+                Effect.fail(
+                  new TemplateValidationError({
+                    cause,
+                    message: "Failed to connect to GitHub",
+                    hint: "Check your internet connection and try again.",
+                  }),
+                ),
+              ResponseError: (cause) =>
+                Effect.fail(
+                  new TemplateValidationError({
+                    cause,
+                    message: "Repository or branch not found.",
+                    hint: "Verify the repository, branch, and path all exist.",
+                  }),
+                ),
+            }),
+          );
+
+        // If there's a file path, validate it contains a package.json
+        if (template.filePath) {
+          yield* api
+            .get(
+              `/repos/${template.owner}/${template.repo}/contents/${template.filePath}/package.json?ref=${template.branch}`,
             )
             .pipe(
               Effect.catchTags({
@@ -130,7 +154,7 @@ export class TemplateDownloader extends Context.Tag(
                   Effect.fail(
                     new TemplateValidationError({
                       cause,
-                      message: "Failed to connect to GitHub",
+                      message: "Failed to connect to GitHub API",
                       hint: "Check your internet connection and try again.",
                     }),
                   ),
@@ -138,70 +162,42 @@ export class TemplateDownloader extends Context.Tag(
                   Effect.fail(
                     new TemplateValidationError({
                       cause,
-                      message: "Repository or branch not found.",
-                      hint: "Verify the repository, branch, and path all exist.",
+                      message: `Template path not found or missing package.json`,
+                      hint: "Templates must contain a package.json file at the root.",
                     }),
                   ),
               }),
             );
-
-          // If there's a file path, validate it contains a package.json
-          if (template.filePath) {
-            yield* api
-              .get(
-                `/repos/${template.owner}/${template.repo}/contents/${template.filePath}/package.json?ref=${template.branch}`,
-              )
-              .pipe(
-                Effect.catchTags({
-                  RequestError: (cause) =>
-                    Effect.fail(
-                      new TemplateValidationError({
-                        cause,
-                        message: "Failed to connect to GitHub API",
-                        hint: "Check your internet connection and try again.",
-                      }),
-                    ),
-                  ResponseError: (cause) =>
-                    Effect.fail(
-                      new TemplateValidationError({
-                        cause,
-                        message: `Template path not found or missing package.json`,
-                        hint: "Templates must contain a package.json file at the root.",
-                      }),
-                    ),
-                }),
-              );
-          }
-        });
+        }
+      });
 
       /**
        * Validate the template by resolving branch and checking existence.
        */
-      const validate = (
+      const validate = Effect.fn(function* (
         template: GitHubTemplateSource,
         verbose: boolean,
-      ): Effect.Effect<ResolvedGitHubTemplate, TemplateValidationError> =>
-        Effect.gen(function* () {
-          if (verbose) {
-            yield* Effect.logInfo(
-              `Validating GitHub repository: ${template.repoUrl}`,
-            );
-          }
+      ) {
+        if (verbose) {
+          yield* Effect.logInfo(
+            `Validating GitHub repository: ${template.repoUrl}`,
+          );
+        }
 
-          const resolved = yield* resolveBranch(template);
+        const resolved = yield* resolveBranch(template);
 
-          if (verbose) {
-            yield* Effect.logInfo(`Using branch: ${resolved.branch}`);
-          }
+        if (verbose) {
+          yield* Effect.logInfo(`Using branch: ${resolved.branch}`);
+        }
 
-          yield* validateExists(resolved);
+        yield* validateExists(resolved);
 
-          if (verbose) {
-            yield* Effect.logInfo("Repository validated successfully");
-          }
+        if (verbose) {
+          yield* Effect.logInfo("Repository validated successfully");
+        }
 
-          return resolved;
-        });
+        return resolved;
+      });
 
       /**
        * Download and extract the template.
@@ -211,7 +207,7 @@ export class TemplateDownloader extends Context.Tag(
         template: ResolvedGitHubTemplate,
         destPath: string,
         verbose: boolean,
-      ): Effect.Effect<void, TemplateDownloadError> =>
+      ) =>
         Effect.gen(function* () {
           const tarballPath = `/${template.owner}/${template.repo}/tar.gz/${template.branch}`;
 
@@ -338,15 +334,16 @@ export class TemplateDownloader extends Context.Tag(
           );
         }).pipe(Effect.scoped);
 
-      return TemplateDownloader.of({
-        download: () =>
-          Effect.gen(function* () {
-            const { projectTemplate, projectPath, verbose } =
-              yield* ProjectSettings;
+      const download = Effect.fn(function* () {
+        const { projectTemplate, projectPath, verbose } =
+          yield* ProjectSettings;
 
-            const resolved = yield* validate(projectTemplate, verbose);
-            yield* extract(resolved, projectPath, verbose);
-          }),
+        const resolved = yield* validate(projectTemplate, verbose);
+        yield* extract(resolved, projectPath, verbose);
+      });
+
+      return TemplateDownloader.of({
+        download,
       });
     }),
   );
