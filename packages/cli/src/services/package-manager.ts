@@ -1,10 +1,20 @@
 import { Command, type CommandExecutor } from "@effect/platform";
 import { Ansi, AnsiDoc } from "@effect/printer-ansi";
-import { Console, Context, Effect, Layer } from "effect";
+import { Config, Console, Context, Effect, Layer } from "effect";
 import { PackageManagerError } from "../domain/errors";
 import { ProjectSettings } from "../project-settings";
 
 export type PackageManagerName = "bun" | "npm" | "pnpm" | "yarn";
+
+const detectPackageManager = Config.string("npm_config_user_agent").pipe(
+  Config.withDefault("npm"),
+  Config.map((userAgent) => {
+    if (userAgent.startsWith("pnpm")) return "pnpm";
+    if (userAgent.startsWith("yarn")) return "yarn";
+    if (userAgent.startsWith("bun")) return "bun";
+    return "npm";
+  }),
+);
 
 export class PackageManager extends Context.Tag(
   "create-tui/services/package-manager",
@@ -25,21 +35,7 @@ export class PackageManager extends Context.Tag(
       const commandExecutorContext =
         yield* Effect.context<CommandExecutor.CommandExecutor>();
 
-      const getPackageManager = (): PackageManagerName => {
-        const userAgent = process.env.npm_config_user_agent || "";
-
-        if (userAgent.startsWith("pnpm")) {
-          return "pnpm";
-        } else if (userAgent.startsWith("yarn")) {
-          return "yarn";
-        } else if (userAgent.startsWith("bun")) {
-          return "bun";
-        } else {
-          return "npm";
-        }
-      };
-
-      const packageManagerName = getPackageManager();
+      const packageManagerName = yield* detectPackageManager;
 
       const install = Effect.fn(function* () {
         const projectSettings = yield* ProjectSettings;
