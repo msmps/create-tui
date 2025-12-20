@@ -115,7 +115,12 @@ export function createProject() {
         .install()
         .pipe(
           Effect.catchAll((cause) =>
-            Effect.logError(`Package installation failed: ${cause.message}`),
+            Effect.logWarning(
+              AnsiDoc.hsep([
+                AnsiDoc.text("Skipping package installation:"),
+                AnsiDoc.text(cause.message).pipe(AnsiDoc.annotate(Ansi.red)),
+              ]),
+            ),
           ),
         );
     }

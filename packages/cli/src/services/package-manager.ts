@@ -72,25 +72,25 @@ export class PackageManager extends Context.Tag(
 
         yield* Console.log();
 
-        yield* Command.make(packageManagerName, "install").pipe(
-          Command.workingDirectory(projectSettings.projectPath),
-          Command.stdout("inherit"),
-          Command.stderr("inherit"),
-          Command.exitCode,
-          Effect.flatMap((exitCode) =>
-            exitCode === 0
-              ? Effect.void
-              : Effect.fail("Exited with non-zero exit code."),
-          ),
-          Effect.mapError(
-            (cause) =>
-              new PackageManagerError({
-                cause,
-                message: "Failed to install dependencies.",
-              }),
-          ),
-          Effect.provide(commandExecutorContext),
-        );
+        yield* Command.make(packageManagerName, "install")
+          .pipe(
+            Command.workingDirectory(projectSettings.projectPath),
+            Command.stdout("inherit"),
+            Command.stderr("inherit"),
+            Command.exitCode,
+            Effect.flatMap((exitCode) =>
+              exitCode === 0
+                ? Effect.void
+                : Effect.fail(new Error("Exited with non-zero exit code.")),
+            ),
+            Effect.provide(commandExecutorContext),
+          )
+          .pipe(
+            Effect.mapError(
+              (cause) =>
+                new PackageManagerError({ cause, message: cause.message }),
+            ),
+          );
 
         yield* Console.log();
       });
