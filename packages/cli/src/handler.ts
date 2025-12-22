@@ -7,7 +7,7 @@ import { ProjectSettings } from "./project-settings";
 import { PackageManager } from "./services/package-manager";
 import { Project } from "./services/project";
 import { TemplateDownloader } from "./services/template-downloader";
-import { checkForUpdates } from "./utils/update-check";
+import { UpdateChecker } from "./services/update-checker";
 
 export function createProject() {
   return Effect.gen(function* () {
@@ -15,6 +15,7 @@ export function createProject() {
     const path = yield* Path.Path;
     const project = yield* Project;
     const fs = yield* FileSystem.FileSystem;
+    const updateChecker = yield* UpdateChecker;
     const packageManager = yield* PackageManager;
     const projectSettings = yield* ProjectSettings;
 
@@ -156,7 +157,7 @@ export function createProject() {
     );
 
     // Check for updates after project creation
-    yield* checkForUpdates({
+    yield* updateChecker.check({
       packageManager: packageManager.name,
     });
   });

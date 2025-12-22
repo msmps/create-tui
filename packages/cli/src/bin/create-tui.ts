@@ -11,12 +11,14 @@ import { cli } from "../cli";
 import { PackageManager } from "../services/package-manager";
 import { Project } from "../services/project";
 import { TemplateDownloader } from "../services/template-downloader";
+import { UpdateChecker } from "../services/update-checker";
 import { createLogger } from "../utils/logger";
 
 const MainLive = Layer.mergeAll(
   TemplateDownloader.layer,
   Project.layer,
   PackageManager.layer,
+  UpdateChecker.layer,
 ).pipe(
   Layer.provide(Logger.replace(Logger.defaultLogger, createLogger())),
   Layer.provideMerge(
