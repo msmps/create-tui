@@ -3,6 +3,7 @@ import {
   HttpClient,
   HttpClientRequest,
   HttpClientResponse,
+  Path,
 } from "@effect/platform";
 import { NodeSink } from "@effect/platform-node";
 import { Context, Effect, Layer, Stream } from "effect";
@@ -60,6 +61,7 @@ export class TemplateDownloader extends Context.Tag(
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const httpClient = yield* HttpClient.HttpClient;
+      const path = yield* Path.Path;
 
       const codeload = httpClient.pipe(
         HttpClient.mapRequest(
@@ -321,7 +323,7 @@ export class TemplateDownloader extends Context.Tag(
           }
 
           const hasPackageJson = yield* fs
-            .exists(`${tmpDir}/package.json`)
+            .exists(path.join(tmpDir, "package.json"))
             .pipe(
               Effect.mapError(
                 (cause) =>
