@@ -15,6 +15,6 @@
   "dependencies": {
     "@opentui/core": "^0.1.77",
     "@opentui/react": "^0.1.77",
-    "react": "^19.2.3"
+    "react": "^19.2.4"
   }
 }
