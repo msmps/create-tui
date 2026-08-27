@@ -97,7 +97,7 @@ update_opentui_deps() {
     fi
 }
 
-# Function to run bun install --lockfile-only in a directory
+# Regenerate the lockfile and verify the updated template.
 update_lockfile() {
     local template_dir="$1"
     local template_name="$2"
@@ -111,8 +111,8 @@ update_lockfile() {
     
     cd "$template_dir"
     
-    if bun install --lockfile-only; then
-        print_success "  Lockfile updated successfully for $template_name"
+    if bun install --lockfile-only && bun install --frozen-lockfile && bun run typecheck; then
+        print_success "  Lockfile updated and template verified for $template_name"
     else
         print_error "  Failed to update lockfile for $template_name"
         return 1
