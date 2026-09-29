@@ -10,16 +10,19 @@ import {
 import { createProject } from "./handler";
 import { ProjectSettings } from "./project-settings";
 import {
+  validateProjectDestination,
+  validateProjectDestinationWithHelpDoc,
   validateProjectName,
-  validateProjectNameWithHelpDoc,
 } from "./utils/validate-project-name";
 
 const projectName = Args.directory({
   name: "project-name",
-  exists: "no",
+  exists: "either",
 }).pipe(
-  Args.withDescription("The folder to bootstrap the project in"),
-  Args.mapEffect(validateProjectNameWithHelpDoc),
+  Args.withDescription(
+    "The folder to bootstrap the project in (use . for the current directory)",
+  ),
+  Args.mapEffect(validateProjectDestinationWithHelpDoc),
   Args.optional,
 );
 
@@ -53,13 +56,14 @@ function handleCommand(args: {
   readonly verbose: boolean;
 }) {
   return Effect.gen(function* () {
+    const projectNameFromArgument = Option.isSome(args.projectName);
     const resolvedProjectName = yield* Option.getOrElse(
       Option.map(args.projectName, Effect.succeed),
       () =>
         Prompt.text({
           message: "What is your project named?",
           default: "my-opentui-project",
-        }).pipe(Effect.flatMap(validateProjectName)),
+        }).pipe(Effect.flatMap(validateProjectDestination)),
     );
 
     const resolvedProjectTemplate = yield* Option.getOrElse(
@@ -88,14 +92,19 @@ function handleCommand(args: {
         ),
     );
 
-    const projectPath = yield* Path.Path.pipe(
-      Effect.map((path) => path.resolve(resolvedProjectName)),
-    );
+    const path = yield* Path.Path;
+    const useCurrentDirectory = resolvedProjectName === ".";
+    const projectPath = path.resolve(resolvedProjectName);
+    const resolvedPackageName = useCurrentDirectory
+      ? yield* validateProjectName(path.basename(projectPath))
+      : resolvedProjectName;
 
     return yield* createProject().pipe(
       ProjectSettings.provide({
-        projectName: resolvedProjectName,
+        projectName: resolvedPackageName,
         projectPath,
+        useCurrentDirectory,
+        projectNameFromArgument,
         projectTemplate: resolvedProjectTemplate,
         skipGit: args.noGit,
         skipInstall: args.noInstall,
