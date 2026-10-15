@@ -12,8 +12,8 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@opentui/core": "^0.6.4",
-    "@opentui/react": "^0.6.4",
+    "@opentui/core": "^0.6.6",
+    "@opentui/react": "^0.6.6",
     "react": "^19.2.8"
   },
   "engines": {
