@@ -14,6 +14,9 @@ A CLI tool for creating OpenTUI projects from templates, organized as a Bun work
 ```bash
 # Use with bun (no installation required)
 bun create tui my-tui-project
+
+# Initialize an empty current directory
+bun create tui .
 ```
 
 ## Available Templates
@@ -72,6 +75,9 @@ Options:
 ```bash
 # Interactive mode (prompts for all options)
 bun create tui my-project
+
+# Initialize the current directory (it must be empty, except for .git)
+bun create tui .
 
 # Use an alias (built-in template)
 bun create tui -t react my-project
