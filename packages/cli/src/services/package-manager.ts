@@ -1,16 +1,10 @@
-import { Command, type CommandExecutor } from "@effect/platform";
-import { Ansi, AnsiDoc } from "@effect/printer-ansi";
 import { Config, Console, Context, Effect, Layer } from "effect";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { PackageManagerError } from "../domain/errors";
 import { ProjectSettings } from "../project-settings";
 
 export type PackageManagerName = "bun" | "npm" | "pnpm" | "yarn";
 
-/**
- * Detects the package manager from the `npm_config_user_agent` environment variable.
- * This variable is automatically set by npm, yarn, pnpm, and bun when running scripts.
- * Falls back to "npm" if the variable is not set or unrecognized.
- */
 export const packageManagerFromUserAgent = (
   userAgent: string,
 ): PackageManagerName => {
@@ -20,89 +14,66 @@ export const packageManagerFromUserAgent = (
   return "npm";
 };
 
-const detectPackageManager = Config.string("npm_config_user_agent").pipe(
+const detectPackageManager = Config.String("npm_config_user_agent").pipe(
   Config.withDefault("npm"),
   Config.map(packageManagerFromUserAgent),
 );
 
-/**
- * Service for detecting and invoking the package manager.
- *
- * Automatically detects which package manager was used to run the CLI
- * (npm, yarn, pnpm, or bun) and provides methods to install dependencies.
- *
- * @example
- * ```ts
- * const pm = yield* PackageManager;
- * console.log(pm.name); // "bun" | "npm" | "pnpm" | "yarn"
- * yield* pm.install();
- * ```
- */
-export class PackageManager extends Context.Tag(
-  "create-tui/services/package-manager",
-)<
+export class PackageManager extends Context.Service<
   PackageManager,
   {
-    /** The detected package manager name */
     readonly name: PackageManagerName;
-    /**
-     * Installs project dependencies using the detected package manager.
-     * Runs the equivalent of `npm install` / `yarn` / `pnpm install` / `bun install`.
-     */
     readonly install: () => Effect.Effect<
       void,
       PackageManagerError,
       ProjectSettings
     >;
   }
->() {
+>()("create-tui/services/package-manager") {
   static readonly layer = Layer.effect(
     PackageManager,
     Effect.gen(function* () {
-      const commandExecutorContext =
-        yield* Effect.context<CommandExecutor.CommandExecutor>();
-
+      const childProcessSpawner =
+        yield* ChildProcessSpawner.ChildProcessSpawner;
       const packageManagerName = yield* detectPackageManager;
 
       const install = Effect.fn(function* () {
         const projectSettings = yield* ProjectSettings;
 
-        yield* Effect.logInfo(
-          AnsiDoc.hsep([
-            AnsiDoc.text("Installing dependencies using"),
-            AnsiDoc.text(packageManagerName).pipe(AnsiDoc.annotate(Ansi.green)),
-          ]),
+        yield* Console.log(
+          `Installing dependencies using ${packageManagerName}`,
+        );
+        yield* Console.log();
+
+        const command = ChildProcess.make(packageManagerName, ["install"], {
+          cwd: projectSettings.projectPath,
+          stdout: "inherit",
+          stderr: "inherit",
+        });
+
+        const exitCode = yield* childProcessSpawner.exitCode(command).pipe(
+          Effect.mapError(
+            (cause) =>
+              new PackageManagerError({
+                cause,
+                message: cause.message,
+              }),
+          ),
         );
 
-        yield* Console.log();
-
-        yield* Command.make(packageManagerName, "install")
-          .pipe(
-            Command.workingDirectory(projectSettings.projectPath),
-            Command.stdout("inherit"),
-            Command.stderr("inherit"),
-            Command.exitCode,
-            Effect.flatMap((exitCode) =>
-              exitCode === 0
-                ? Effect.void
-                : Effect.fail(new Error("Exited with non-zero exit code.")),
-            ),
-            Effect.provide(commandExecutorContext),
-          )
-          .pipe(
-            Effect.mapError(
-              (cause) =>
-                new PackageManagerError({ cause, message: cause.message }),
-            ),
-          );
+        if (exitCode !== 0) {
+          return yield* new PackageManagerError({
+            message: `Package installation exited with code ${exitCode}.`,
+          });
+        }
 
         yield* Console.log();
       });
 
-      return PackageManager.of({
+      return {
         name: packageManagerName,
         install,
-      });
+      };
     }),
   );
 }

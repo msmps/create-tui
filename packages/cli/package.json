@@ -33,22 +33,18 @@
     "prepublishOnly": "vp run build"
   },
   "dependencies": {
-    "@effect/cli": "^0.73.0",
-    "@effect/platform": "^0.94.0",
-    "@effect/platform-node": "^0.104.0",
-    "@effect/printer": "^0.47.0",
-    "@effect/printer-ansi": "^0.47.0",
-    "effect": "^3.19.13",
-    "semver": "^7.7.3",
-    "tar": "^7.5.2"
+    "@effect/platform-node": "^4.1.0",
+    "effect": "^4.1.0",
+    "semver": "^7.8.5",
+    "tar": "^7.5.22"
   },
   "devDependencies": {
-    "@types/semver": "^7.7.1"
+    "@types/semver": "^7.8.0"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.19.0"
   }
 }

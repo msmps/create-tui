@@ -1,12 +1,6 @@
-import {
-  FileSystem,
-  HttpClient,
-  HttpClientRequest,
-  HttpClientResponse,
-  Path,
-} from "@effect/platform";
 import { NodeSink } from "@effect/platform-node";
-import { Context, Effect, Layer, Stream } from "effect";
+import { Context, Effect, FileSystem, Layer, Path, Stream } from "effect";
+import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http";
 import * as Tar from "tar";
 import {
   TemplateDownloadError,
@@ -33,9 +27,7 @@ interface ResolvedGitHubTemplate extends GitHubTemplateSource {
  * yield* downloader.download();
  * ```
  */
-export class TemplateDownloader extends Context.Tag(
-  "create-tui/services/template-downloader",
-)<
+export class TemplateDownloader extends Context.Service<
   TemplateDownloader,
   {
     /**
@@ -55,7 +47,7 @@ export class TemplateDownloader extends Context.Tag(
       ProjectSettings
     >;
   }
->() {
+>()("create-tui/services/template-downloader") {
   static readonly layer = Layer.effect(
     TemplateDownloader,
     Effect.gen(function* () {
@@ -116,24 +108,14 @@ export class TemplateDownloader extends Context.Tag(
                   }),
                 );
           }),
-          Effect.catchTags({
-            RequestError: (cause) =>
-              Effect.fail(
-                new TemplateValidationError({
-                  cause,
-                  message: "Failed to connect to GitHub API",
-                  hint: "Check your internet connection and try again.",
-                }),
-              ),
-            ResponseError: (cause) =>
-              Effect.fail(
-                new TemplateValidationError({
-                  cause,
-                  message: `Repository not found: ${template.owner}/${template.repo}`,
-                  hint: "Verify the repository exists and is public.",
-                }),
-              ),
-          }),
+          Effect.mapError(
+            (cause) =>
+              new TemplateValidationError({
+                cause,
+                message: `Repository not found: ${template.owner}/${template.repo}`,
+                hint: "Verify the repository exists, is public, and your internet connection is available.",
+              }),
+          ),
         );
       });
 
@@ -147,24 +129,14 @@ export class TemplateDownloader extends Context.Tag(
         yield* codeload
           .head(`/${template.owner}/${template.repo}/tar.gz/${template.branch}`)
           .pipe(
-            Effect.catchTags({
-              RequestError: (cause) =>
-                Effect.fail(
-                  new TemplateValidationError({
-                    cause,
-                    message: "Failed to connect to GitHub",
-                    hint: "Check your internet connection and try again.",
-                  }),
-                ),
-              ResponseError: (cause) =>
-                Effect.fail(
-                  new TemplateValidationError({
-                    cause,
-                    message: "Repository or branch not found.",
-                    hint: "Verify the repository, branch, and path all exist.",
-                  }),
-                ),
-            }),
+            Effect.mapError(
+              (cause) =>
+                new TemplateValidationError({
+                  cause,
+                  message: "Repository or branch not found.",
+                  hint: "Verify the repository and branch exist and your internet connection is available.",
+                }),
+            ),
           );
 
         // If there's a file path, validate it contains a package.json
@@ -174,24 +146,14 @@ export class TemplateDownloader extends Context.Tag(
               `/repos/${template.owner}/${template.repo}/contents/${template.filePath}/package.json?ref=${template.branch}`,
             )
             .pipe(
-              Effect.catchTags({
-                RequestError: (cause) =>
-                  Effect.fail(
-                    new TemplateValidationError({
-                      cause,
-                      message: "Failed to connect to GitHub API",
-                      hint: "Check your internet connection and try again.",
-                    }),
-                  ),
-                ResponseError: (cause) =>
-                  Effect.fail(
-                    new TemplateValidationError({
-                      cause,
-                      message: `Template path not found or missing package.json`,
-                      hint: "Templates must contain a package.json file at the root.",
-                    }),
-                  ),
-              }),
+              Effect.mapError(
+                (cause) =>
+                  new TemplateValidationError({
+                    cause,
+                    message: "Template path not found or missing package.json",
+                    hint: "Templates must contain a package.json file at the root.",
+                  }),
+              ),
             );
         }
       });
@@ -260,46 +222,44 @@ export class TemplateDownloader extends Context.Tag(
             yield* Effect.logInfo("Extracting to temporary directory...");
           }
 
-          yield* Stream.run(
-            codeload.get(tarballPath).pipe(
-              HttpClientResponse.stream,
-              Stream.mapError(
-                (cause) =>
-                  new TemplateDownloadError({
-                    cause,
-                    message: `Failed to download: ${template.displayName}`,
-                    hint: "Check your internet connection and try again.",
-                  }),
-              ),
-            ),
-            NodeSink.fromWritable(
-              () =>
-                Tar.x({
-                  cwd: tmpDir,
-                  strip: stripCount,
-                  filter: (path: string) => {
-                    const parts = path.split("/");
-                    if (parts.length < 2) return false;
-
-                    // If no file path filter, include everything
-                    if (!template.filePath) {
-                      return true;
-                    }
-
-                    // Filter to only include files within the template path
-                    const relativePath = parts.slice(1).join("/");
-                    return (
-                      relativePath === template.filePath ||
-                      relativePath.startsWith(`${template.filePath}/`)
-                    );
-                  },
-                }),
+          yield* codeload.get(tarballPath).pipe(
+            HttpClientResponse.stream,
+            Stream.mapError(
               (cause) =>
                 new TemplateDownloadError({
                   cause,
-                  message: "Failed to extract archive",
-                  hint: "The downloaded archive may be corrupted. Try again.",
+                  message: `Failed to download: ${template.displayName}`,
+                  hint: "Check your internet connection and try again.",
                 }),
+            ),
+            Stream.run(
+              NodeSink.fromWritable({
+                evaluate: () =>
+                  Tar.x({
+                    cwd: tmpDir,
+                    strip: stripCount,
+                    filter: (path: string) => {
+                      const parts = path.split("/");
+                      if (parts.length < 2) return false;
+
+                      if (!template.filePath) {
+                        return true;
+                      }
+
+                      const relativePath = parts.slice(1).join("/");
+                      return (
+                        relativePath === template.filePath ||
+                        relativePath.startsWith(`${template.filePath}/`)
+                      );
+                    },
+                  }),
+                onError: (cause) =>
+                  new TemplateDownloadError({
+                    cause,
+                    message: "Failed to extract archive",
+                    hint: "The downloaded archive may be corrupted. Try again.",
+                  }),
+              }),
             ),
           );
 
@@ -367,9 +327,9 @@ export class TemplateDownloader extends Context.Tag(
         yield* extract(resolved, projectPath, verbose);
       });
 
-      return TemplateDownloader.of({
+      return {
         download,
-      });
+      };
     }),
   );
 }
