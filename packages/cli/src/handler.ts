@@ -1,4 +1,4 @@
-import { Console, Effect, FileSystem, Path } from "effect";
+import { Effect, FileSystem, Path } from "effect";
 import { Prompt } from "effect/cli";
 import { CreateProjectError } from "./domain/errors";
 import { ProjectSettings } from "./project-settings";
@@ -29,7 +29,7 @@ export function createProject() {
     );
 
     if (directoryExists) {
-      yield* Console.warn(
+      yield* Effect.logWarning(
         `Directory ${projectSettings.projectPath} already exists`,
       );
 
@@ -56,10 +56,10 @@ export function createProject() {
       );
     }
 
-    yield* Console.log(
+    yield* Effect.logInfo(
       `Creating a new project in ${projectSettings.projectPath}`,
     );
-    yield* Console.log(
+    yield* Effect.logInfo(
       `Initializing project with the ${projectSettings.projectTemplate.displayName} template`,
     );
 
@@ -96,23 +96,27 @@ export function createProject() {
         .install()
         .pipe(
           Effect.catch((cause) =>
-            Console.warn(`Skipping package installation: ${cause.message}`),
+            Effect.logWarning(
+              `Skipping package installation: ${cause.message}`,
+            ),
           ),
         );
     }
 
     if (!projectSettings.skipGit) {
       yield* project.initializeGitRepository().pipe(
-        Effect.andThen(Console.log("Git repository initialized successfully")),
+        Effect.andThen(
+          Effect.logInfo("Git repository initialized successfully"),
+        ),
         Effect.catch((cause) =>
-          Console.warn(
+          Effect.logWarning(
             `Skipping initialization of git repository: ${cause.message}`,
           ),
         ),
       );
     }
 
-    yield* Console.log(
+    yield* Effect.logInfo(
       `Success! Project created at: ${projectSettings.projectPath}`,
     );
 

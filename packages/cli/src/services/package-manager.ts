@@ -40,7 +40,7 @@ export class PackageManager extends Context.Service<
       const install = Effect.fn(function* () {
         const projectSettings = yield* ProjectSettings;
 
-        yield* Console.log(
+        yield* Effect.logInfo(
           `Installing dependencies using ${packageManagerName}`,
         );
         yield* Console.log();
