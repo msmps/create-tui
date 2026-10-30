@@ -1,6 +1,6 @@
 # Create OpenTUI App
 
-A CLI tool for creating OpenTUI projects from templates, organized as a Bun workspace monorepo.
+A CLI tool for creating OpenTUI projects from templates. The CLI is developed with Vite+ and runs through npm, pnpm, Yarn, or Bun. Generated OpenTUI projects continue to use Bun as their runtime.
 
 ## Packages
 
@@ -12,9 +12,20 @@ A CLI tool for creating OpenTUI projects from templates, organized as a Bun work
 ### Using the CLI (Recommended)
 
 ```bash
-# Use with bun (no installation required)
+# npm
+npm create tui@latest my-tui-project
+
+# pnpm
+pnpm create tui my-tui-project
+
+# Yarn
+yarn create tui my-tui-project
+
+# Bun
 bun create tui my-tui-project
 ```
+
+The CLI detects the package manager used to launch it and uses that same package manager to install the generated project's dependencies.
 
 ## Available Templates
 
@@ -97,6 +108,24 @@ packages/
     └── solid/      # Solid template
 ```
 
+## Development
+
+The repository uses [Vite+](https://viteplus.dev/) for package management, checks, tests, and packaging. Node.js `^22.18.0`, `^24.11.0`, or `>=26.0.0` is required for development.
+
+```bash
+npm install
+npm run check
+npm test
+npm run build
+```
+
+Bun is only required for validating and updating the OpenTUI templates:
+
+```bash
+npm run check:templates
+npm run update:opentui
+```
+
 ## Publishing
 
 The CLI package is published to npm as `create-tui`. Templates are downloaded directly from this GitHub repository.
@@ -105,8 +134,10 @@ The CLI package is published to npm as `create-tui`. Templates are downloaded di
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+3. Install dependencies with `npm install`
+4. Make your changes
+5. Run `npm run check`, `npm test`, and `npm run build`
+6. Submit a pull request
 
 ## Attribution
 

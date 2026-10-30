@@ -55,7 +55,9 @@ export function createLogger() {
         console.log(
           AnsiDoc.render(
             AnsiDoc.catWithSpace(firstLine, AnsiDoc.text(error.message)),
-            { style: "pretty" },
+            {
+              style: "pretty",
+            },
           ),
         );
 

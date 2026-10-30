@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it } from "vite-plus/test";
 import {
   HttpClient,
   HttpClientRequest,
@@ -6,9 +6,7 @@ import {
 } from "@effect/platform";
 import * as AnsiDoc from "@effect/printer-ansi/AnsiDoc";
 import { Effect, Layer, Logger, LogLevel } from "effect";
-import { version as currentVersion } from "../../package.json" with {
-  type: "json",
-};
+import { version as currentVersion } from "../../package.json" with { type: "json" };
 import { UpdateChecker } from "./update-checker";
 
 /**

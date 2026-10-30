@@ -2,6 +2,7 @@
   "compilerOptions": {
     // Environment setup & latest features
     "lib": ["ESNext"],
+    "types": ["node"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
@@ -38,5 +39,12 @@
         "name": "@effect/language-service"
       }
     ]
-  }
+  },
+  "include": [
+    "packages/cli/src/**/*",
+    "packages/cli/scripts/**/*",
+    "packages/cli/vite.config.ts",
+    "vite.config.ts"
+  ],
+  "exclude": [".repos", "node_modules", "**/dist", "packages/templates"]
 }

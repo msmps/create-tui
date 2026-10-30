@@ -3,6 +3,15 @@ import { NodeContext } from "@effect/platform-node";
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 
+type PackageJson = {
+  bin?: Record<string, string>;
+  main?: string;
+  scripts?: unknown;
+  devDependencies?: unknown;
+  peerDependencies?: unknown;
+  [key: string]: unknown;
+};
+
 const postBuild = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -21,7 +30,7 @@ const postBuild = Effect.gen(function* () {
   yield* Console.log("📄 Reading package.json...");
   const packageJson = yield* fs
     .readFileString(packageJsonPath)
-    .pipe(Effect.map((json) => JSON.parse(json)));
+    .pipe(Effect.map((json) => JSON.parse(json) as PackageJson));
 
   // Update bin paths to be relative to dist
   yield* Console.log("🔧 Updating bin paths...");
@@ -29,7 +38,7 @@ const postBuild = Effect.gen(function* () {
     const updatedBin: Record<string, string> = {};
     for (const [command, binPath] of Object.entries(packageJson.bin)) {
       // Remove 'dist/' prefix if it exists since we're now in the dist folder
-      const cleanPath = (binPath as string).replace(/^dist\//, "");
+      const cleanPath = binPath.replace(/^dist\//, "");
       updatedBin[command] = cleanPath;
     }
     packageJson.bin = updatedBin;
@@ -37,7 +46,7 @@ const postBuild = Effect.gen(function* () {
 
   // Update main entry point
   if (packageJson.main) {
-    packageJson.main = (packageJson.main as string).replace(/^dist\//, "");
+    packageJson.main = packageJson.main.replace(/^dist\//, "");
   }
 
   // Remove scripts that don't make sense in the published package
@@ -73,7 +82,7 @@ const postBuild = Effect.gen(function* () {
 // Run the post-build script
 const program = postBuild.pipe(
   Effect.catchAll((error) =>
-    Console.error(`❌ Post-build failed: ${error}`).pipe(
+    Console.error(`❌ Post-build failed: ${String(error)}`).pipe(
       Effect.flatMap(() => Effect.fail(error)),
     ),
   ),
