@@ -26,7 +26,7 @@
     "update:opentui": "bash scripts/update-opentui-deps.sh"
   },
   "devDependencies": {
-    "@effect/language-service": "^0.62.4",
+    "@effect/language-service": "^0.87.5",
     "@types/node": "^26.6.6",
     "typescript": "^5",
     "vite-plus": "1.4.0"
@@ -36,7 +36,7 @@
     "vitest": "5.0.5"
   },
   "engines": {
-    "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
+    "node": "^22.19.0 || ^24.11.0 || >=26.0.0"
   },
   "packageManager": "npm@11.19.1"
 }

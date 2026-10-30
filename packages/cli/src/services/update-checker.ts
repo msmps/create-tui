@@ -1,5 +1,3 @@
-import { HttpClient } from "@effect/platform";
-import { Ansi, AnsiDoc } from "@effect/printer-ansi";
 import {
   Console,
   Context,
@@ -9,6 +7,7 @@ import {
   Option,
   Schema,
 } from "effect";
+import { HttpClient } from "effect/http";
 import semver from "semver";
 import { version as currentVersion } from "../../package.json" with { type: "json" };
 import type { PackageManagerName } from "./package-manager";
@@ -34,34 +33,14 @@ function getUpdateCommand(packageManager: PackageManagerName): string {
   }
 }
 
-/**
- * Service for checking if a newer version of create-tui is available.
- *
- * Designed to be completely resilient:
- * - Times out after 3 seconds to avoid slowing down the CLI
- * - Silently ignores all errors (network issues, parsing errors, etc.)
- * - Never interrupts or fails the main CLI flow
- *
- * @example
- * ```ts
- * const updateChecker = yield* UpdateChecker;
- * yield* updateChecker.check({ packageManager: "bun" });
- * ```
- */
-export class UpdateChecker extends Context.Tag(
-  "create-tui/services/update-checker",
-)<
+export class UpdateChecker extends Context.Service<
   UpdateChecker,
   {
-    /**
-     * Checks npm for a newer version and displays a notification if available.
-     * This operation is fire-and-forget - it will never fail or block the CLI.
-     */
     readonly check: (options: {
       readonly packageManager: PackageManagerName;
     }) => Effect.Effect<void>;
   }
->() {
+>()("create-tui/services/update-checker") {
   static readonly layer = Layer.effect(
     UpdateChecker,
     Effect.gen(function* () {
@@ -70,8 +49,8 @@ export class UpdateChecker extends Context.Tag(
       const fetchLatestVersion = httpClient
         .get("https://registry.npmjs.org/create-tui")
         .pipe(
-          Effect.flatMap((res) => res.json),
-          Effect.flatMap(Schema.decodeUnknown(NpmRegistryResponseSchema)),
+          Effect.flatMap((response) => response.json),
+          Effect.flatMap(Schema.decodeUnknownEffect(NpmRegistryResponseSchema)),
           Effect.map((response) => response["dist-tags"].latest),
         );
 
@@ -80,24 +59,12 @@ export class UpdateChecker extends Context.Tag(
         packageManager: PackageManagerName,
       ) =>
         Effect.gen(function* () {
-          const updateCommand = getUpdateCommand(packageManager);
-
           yield* Console.log();
-
           yield* Effect.logWarning(
-            AnsiDoc.hsep([
-              AnsiDoc.text("Update available!").pipe(
-                AnsiDoc.annotate(Ansi.combine(Ansi.yellow, Ansi.bold)),
-              ),
-              AnsiDoc.text(`${currentVersion} -> ${latestVersion}`),
-            ]),
+            `Update available! ${currentVersion} -> ${latestVersion}`,
           );
           yield* Effect.logWarning(
-            AnsiDoc.hsep([
-              AnsiDoc.text("Run"),
-              AnsiDoc.text(updateCommand).pipe(AnsiDoc.annotate(Ansi.cyan)),
-              AnsiDoc.text("to update"),
-            ]),
+            `Run ${getUpdateCommand(packageManager)} to update`,
           );
         });
 
@@ -112,7 +79,6 @@ export class UpdateChecker extends Context.Tag(
             }
 
             const latestVersion = maybeLatestVersion.value;
-
             if (!semver.gt(latestVersion, currentVersion)) {
               return Effect.void;
             }
@@ -122,10 +88,10 @@ export class UpdateChecker extends Context.Tag(
               options.packageManager,
             );
           }),
-          Effect.catchAll(() => Effect.void),
+          Effect.catch(() => Effect.void),
         );
 
-      return UpdateChecker.of({ check });
+      return { check };
     }),
   );
 }

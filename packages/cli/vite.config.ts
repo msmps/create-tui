@@ -11,6 +11,6 @@ export default defineConfig({
     outExtensions: () => ({ js: ".js" }),
     platform: "node",
     sourcemap: false,
-    target: "node18",
+    target: "node22",
   },
 });
