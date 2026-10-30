@@ -5,8 +5,8 @@ import {
   NodeRuntime,
   NodeServices,
 } from "@effect/platform-node";
-import { Effect, Layer, Logger } from "effect";
-import { CliConfig, GlobalFlag } from "effect/cli";
+import { Cause, Effect, Layer, Logger, Option } from "effect";
+import { CliConfig, CliError, GlobalFlag } from "effect/cli";
 import { cli } from "../cli";
 import { PackageManager } from "../services/package-manager";
 import { Project } from "../services/project";
@@ -33,6 +33,18 @@ const MainLive = Layer.mergeAll(
 );
 
 cli.pipe(
+  Effect.tapCause((cause) => {
+    if (Cause.hasInterruptsOnly(cause)) {
+      return Effect.void;
+    }
+
+    const error = Cause.findErrorOption(cause);
+    if (Option.isSome(error) && CliError.isCliError(error.value)) {
+      return Effect.void;
+    }
+
+    return Effect.logError(cause);
+  }),
   Effect.provide(MainLive),
   NodeRuntime.runMain({
     disableErrorReporting: true,
