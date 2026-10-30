@@ -1,27 +1,42 @@
 {
   "name": "create-tui",
   "version": "0.0.1",
-  "type": "module",
   "private": true,
+  "keywords": [
+    "cli",
+    "generator",
+    "opentui",
+    "scaffold",
+    "template"
+  ],
   "workspaces": [
     "packages/*"
   ],
-  "keywords": [
-    "cli",
-    "template",
-    "opentui",
-    "scaffold",
-    "generator"
-  ],
+  "type": "module",
   "scripts": {
+    "build": "vp -C packages/cli run build",
+    "dev": "vp -C packages/cli run dev",
+    "check": "vp check && vp run typecheck",
+    "check:fix": "vp check --fix && vp run typecheck",
+    "lint": "vp lint",
+    "lint:fix": "vp lint --fix",
+    "test": "vp test",
+    "typecheck": "vp exec tsc --noEmit -p tsconfig.json",
     "check:templates": "bash scripts/check-templates.sh",
-    "lint": "biome check .",
-    "lint:fix": "biome check . --write",
     "update:opentui": "bash scripts/update-opentui-deps.sh"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.3.7",
-    "@types/bun": "latest",
-    "typescript": "^5"
-  }
+    "@effect/language-service": "^0.62.4",
+    "@types/node": "^26.6.6",
+    "typescript": "^5",
+    "vite-plus": "1.4.0"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0",
+    "vitest": "5.0.5"
+  },
+  "engines": {
+    "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
+  },
+  "packageManager": "npm@11.19.1"
 }

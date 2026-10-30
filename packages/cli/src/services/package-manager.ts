@@ -11,14 +11,18 @@ export type PackageManagerName = "bun" | "npm" | "pnpm" | "yarn";
  * This variable is automatically set by npm, yarn, pnpm, and bun when running scripts.
  * Falls back to "npm" if the variable is not set or unrecognized.
  */
+export const packageManagerFromUserAgent = (
+  userAgent: string,
+): PackageManagerName => {
+  if (userAgent.startsWith("pnpm")) return "pnpm";
+  if (userAgent.startsWith("yarn")) return "yarn";
+  if (userAgent.startsWith("bun")) return "bun";
+  return "npm";
+};
+
 const detectPackageManager = Config.string("npm_config_user_agent").pipe(
   Config.withDefault("npm"),
-  Config.map((userAgent) => {
-    if (userAgent.startsWith("pnpm")) return "pnpm";
-    if (userAgent.startsWith("yarn")) return "yarn";
-    if (userAgent.startsWith("bun")) return "bun";
-    return "npm";
-  }),
+  Config.map(packageManagerFromUserAgent),
 );
 
 /**
