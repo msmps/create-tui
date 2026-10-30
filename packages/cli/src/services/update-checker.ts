@@ -10,9 +10,7 @@ import {
   Schema,
 } from "effect";
 import semver from "semver";
-import { version as currentVersion } from "../../package.json" with {
-  type: "json",
-};
+import { version as currentVersion } from "../../package.json" with { type: "json" };
 import type { PackageManagerName } from "./package-manager";
 
 const NpmRegistryResponseSchema = Schema.Struct({

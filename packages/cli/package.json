@@ -2,36 +2,36 @@
   "name": "create-tui",
   "version": "0.0.11",
   "description": "CLI tool for creating OpenTUI projects from templates",
-  "type": "module",
-  "sideEffects": false,
-  "bin": {
-    "create-tui": "dist/bin.js"
-  },
-  "scripts": {
-    "build": "bunchee --minify --sourcemap=false",
-    "postbuild": "bun run scripts/post-build.ts",
-    "dev": "bun run src/bin/create-tui.ts",
-    "prepublishOnly": "bun run build"
-  },
   "keywords": [
     "cli",
-    "template",
+    "create-app",
+    "generator",
     "opentui",
     "scaffold",
-    "generator",
-    "create-app"
+    "template"
   ],
-  "author": "Matt Simpson",
+  "homepage": "https://github.com/msmps/create-tui#readme",
+  "bugs": {
+    "url": "https://github.com/msmps/create-tui/issues"
+  },
   "license": "MIT",
+  "author": "Matt Simpson",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/msmps/create-tui.git",
     "directory": "packages/cli"
   },
-  "bugs": {
-    "url": "https://github.com/msmps/create-tui/issues"
+  "bin": {
+    "create-tui": "dist/bin.js"
   },
-  "homepage": "https://github.com/msmps/create-tui#readme",
+  "type": "module",
+  "sideEffects": false,
+  "scripts": {
+    "build": "vp pack",
+    "postbuild": "vpx scripts/post-build.ts",
+    "dev": "vpx src/bin/create-tui.ts",
+    "prepublishOnly": "vp run build"
+  },
   "dependencies": {
     "@effect/cli": "^0.73.0",
     "@effect/platform": "^0.94.0",
@@ -43,16 +43,12 @@
     "tar": "^7.5.2"
   },
   "devDependencies": {
-    "@effect/language-service": "^0.62.4",
-    "@types/bun": "latest",
-    "@types/semver": "^7.7.1",
-    "bunchee": "^6.6.2"
+    "@types/semver": "^7.7.1"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "bun": ">=1.0.0"
+    "node": ">=18.0.0"
   }
 }

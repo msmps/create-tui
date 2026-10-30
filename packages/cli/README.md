@@ -4,10 +4,16 @@ A CLI tool for creating OpenTUI projects from templates.
 
 ## Installation
 
+Run the CLI with npm, pnpm, Yarn, or Bun:
+
 ```bash
-# Use with bun (no installation required)
+npm create tui@latest my-tui-project
+pnpm create tui my-tui-project
+yarn create tui my-tui-project
 bun create tui my-tui-project
 ```
+
+The CLI uses the invoking package manager to install dependencies in the generated project. The generated OpenTUI project itself uses Bun as its runtime.
 
 ## What It Does
 
@@ -123,7 +129,7 @@ Any public GitHub repository can be used as a template. Use either shorthand (`o
 
 ## Update Notifications
 
-The CLI automatically checks for newer versions after each run. If an update is available, you'll see a notification with the command to update:
+The CLI automatically checks for newer versions after each run. If an update is available, you'll see a notification with an update command for your package manager:
 
 ```
 Update available! 1.0.0 -> 1.1.0
@@ -134,16 +140,18 @@ This check is non-blocking and times out after 3 seconds to avoid slowing down t
 
 ## Development
 
+Development uses Vite+ and a supported Node.js version (`^22.18.0`, `^24.11.0`, or `>=26.0.0`):
+
 ```bash
-# Install dependencies
-bun install
-
-# Run in development mode
-bun run dev
-
-# Build for production
-bun run build
+# From the repository root
+npm install
+npm run dev
+npm run check
+npm test
+npm run build
 ```
+
+Bun remains required for running and validating the generated OpenTUI templates.
 
 ## License
 
