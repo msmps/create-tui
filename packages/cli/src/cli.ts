@@ -1,48 +1,53 @@
-import { Args, Command, Options, Prompt } from "@effect/cli";
-import { Path } from "@effect/platform";
-import { Effect, Option, Schema } from "effect";
-import { version } from "../package.json" with { type: "json" };
+import { Console, Effect, Option, Path } from "effect";
+import { Argument, CliError, Command, Flag, Prompt } from "effect/cli";
+import { version as packageVersion } from "../package.json" with { type: "json" };
 import {
   type GitHubTemplateSource,
-  TemplateSourceSchema,
+  parseTemplateSource,
   templateAliases,
 } from "./domain/template";
 import { createProject } from "./handler";
 import { ProjectSettings } from "./project-settings";
-import {
-  validateProjectName,
-  validateProjectNameWithHelpDoc,
-} from "./utils/validate-project-name";
+import { validateProjectName } from "./utils/validate-project-name";
 
-const projectName = Args.directory({
-  name: "project-name",
-  exists: "no",
-}).pipe(
-  Args.withDescription("The folder to bootstrap the project in"),
-  Args.mapEffect(validateProjectNameWithHelpDoc),
-  Args.optional,
+const projectName = Argument.String("project-name").pipe(
+  Argument.withDescription("The folder to bootstrap the project in"),
+  Argument.mapEffect(validateProjectName),
+  Argument.optional,
 );
 
-const noGit = Options.boolean("no-git").pipe(
-  Options.withDescription("Skip initializing a git repository"),
+const noGit = Flag.Boolean("no-git").pipe(
+  Flag.withDefault(false),
+  Flag.withDescription("Skip initializing a git repository"),
 );
 
-const noInstall = Options.boolean("no-install").pipe(
-  Options.withDescription("Skip installing dependencies"),
+const noInstall = Flag.Boolean("no-install").pipe(
+  Flag.withDefault(false),
+  Flag.withDescription("Skip installing dependencies"),
 );
 
-const verbose = Options.boolean("verbose").pipe(
-  Options.withAlias("v"),
-  Options.withDescription("Show detailed progress during template operations"),
+const showVersion = Flag.Boolean("version").pipe(
+  Flag.withDefault(false),
+  Flag.withDescription("Show version information"),
 );
 
-const projectTemplate = Options.text("template").pipe(
-  Options.withAlias("t"),
-  Options.withDescription(
+const verbose = Flag.Boolean("verbose").pipe(
+  Flag.withDefault(false),
+  Flag.withAlias("v"),
+  Flag.withDescription("Show detailed progress during template operations"),
+);
+
+const projectTemplate = Flag.String("template").pipe(
+  Flag.withAlias("t"),
+  Flag.withDescription(
     `Template: alias (${templateAliases.join(", ")}), shorthand (owner/repo), or GitHub URL`,
   ),
-  Options.withSchema(TemplateSourceSchema),
-  Options.optional,
+  Flag.mapEffect((value) =>
+    parseTemplateSource(value).pipe(
+      Effect.mapError((message) => new CliError.ValidationError({ message })),
+    ),
+  ),
+  Flag.optional,
 );
 
 function handleCommand(args: {
@@ -50,47 +55,57 @@ function handleCommand(args: {
   readonly projectTemplate: Option.Option<GitHubTemplateSource>;
   readonly noGit: boolean;
   readonly noInstall: boolean;
+  readonly showVersion: boolean;
   readonly verbose: boolean;
 }) {
   return Effect.gen(function* () {
-    const resolvedProjectName = yield* Option.getOrElse(
-      Option.map(args.projectName, Effect.succeed),
-      () =>
-        Prompt.text({
+    if (args.showVersion) {
+      yield* Console.log(packageVersion);
+      return;
+    }
+    const resolvedProjectName = Option.isSome(args.projectName)
+      ? args.projectName.value
+      : yield* Prompt.String({
           message: "What is your project named?",
           default: "my-opentui-project",
-        }).pipe(Effect.flatMap(validateProjectName)),
-    );
+          validate: (name) =>
+            validateProjectName(name).pipe(
+              Effect.mapError((error) => error.message),
+            ),
+        });
 
-    const resolvedProjectTemplate = yield* Option.getOrElse(
-      Option.map(args.projectTemplate, Effect.succeed),
-      () =>
-        Prompt.select({
+    const resolvedProjectTemplate = Option.isSome(args.projectTemplate)
+      ? args.projectTemplate.value
+      : yield* Prompt.Select({
           message: "Which template do you want to use?",
           choices: [
             { title: "Core", value: "core" },
             { title: "React", value: "react" },
             { title: "Solid", value: "solid" },
-            { title: "Custom (GitHub URL or shorthand)", value: "__custom__" },
+            {
+              title: "Custom (GitHub URL or shorthand)",
+              value: "__custom__",
+            },
           ],
         }).pipe(
           Effect.flatMap((value) =>
             value === "__custom__"
-              ? Prompt.text({
+              ? Prompt.String({
                   message:
                     "Enter template (owner/repo, owner/repo/path, or full GitHub URL):",
                 })
               : Effect.succeed(value),
           ),
-          Effect.flatMap((input) =>
-            Schema.decodeUnknown(TemplateSourceSchema)(input),
+          Effect.flatMap(parseTemplateSource),
+          Effect.mapError((error) =>
+            typeof error === "string"
+              ? new CliError.ValidationError({ message: error })
+              : error,
           ),
-        ),
-    );
+        );
 
-    const projectPath = yield* Path.Path.pipe(
-      Effect.map((path) => path.resolve(resolvedProjectName)),
-    );
+    const path = yield* Path.Path;
+    const projectPath = path.resolve(resolvedProjectName);
 
     return yield* createProject().pipe(
       ProjectSettings.provide({
@@ -105,18 +120,17 @@ function handleCommand(args: {
   });
 }
 
-const command = Command.make("create-tui", {
-  projectName,
-  projectTemplate,
-  noGit,
-  noInstall,
-  verbose,
-}).pipe(
-  Command.withDescription("Create a new OpenTUI project from a template"),
-  Command.withHandler(handleCommand),
-);
+const command = Command.make(
+  "create-tui",
+  {
+    projectName,
+    projectTemplate,
+    noGit,
+    noInstall,
+    showVersion,
+    verbose,
+  },
+  handleCommand,
+).pipe(Command.withDescription("Create a new OpenTUI project from a template"));
 
-export const cli = Command.run(command, {
-  name: "create-tui",
-  version,
-});
+export const cli = Command.run(command, { version: packageVersion });

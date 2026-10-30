@@ -1,4 +1,4 @@
-import { Data, Schema } from "effect";
+import { Data, Effect } from "effect";
 
 /**
  * Template aliases map friendly names to their GitHub URLs.
@@ -124,60 +124,54 @@ export class GitHubTemplateSource extends Data.TaggedClass("GitHubTemplate")<{
 }
 
 /**
- * Schema to parse and validate template string.
+ * Parses and validates a template string.
  *
- * Accepts:
- * - Aliases: "core", "react", "solid"
- * - Shorthand: "owner/repo", "owner/repo/path"
- * - Full URLs: "https://github.com/owner/repo/tree/branch/path"
+ * Accepts aliases, GitHub shorthand, and full GitHub URLs.
  */
-export const TemplateSourceSchema = Schema.transform(
-  Schema.String,
-  Schema.Any as Schema.Schema<GitHubTemplateSource>,
-  {
-    decode: (value: string): GitHubTemplateSource => {
-      // 1. Check if it's an alias
-      if (value in TEMPLATE_ALIASES) {
-        const aliasUrl = TEMPLATE_ALIASES[value as TemplateAlias];
-        const parsed = parseGitHubUrl(aliasUrl);
-        if (parsed) {
-          return new GitHubTemplateSource({
-            owner: parsed.owner,
-            repo: parsed.repo,
-            branch: parsed.branch,
-            filePath: parsed.filePath,
-            alias: value as TemplateAlias,
-          });
-        }
-      }
-
-      // 2. Try parsing as a full GitHub URL
-      const urlParsed = parseGitHubUrl(value);
-      if (urlParsed) {
-        return new GitHubTemplateSource({
-          owner: urlParsed.owner,
-          repo: urlParsed.repo,
-          branch: urlParsed.branch,
-          filePath: urlParsed.filePath,
-        });
-      }
-
-      // 3. Try parsing as shorthand (owner/repo or owner/repo/path)
-      const shorthandParsed = parseShorthand(value);
-      if (shorthandParsed) {
-        return new GitHubTemplateSource({
-          owner: shorthandParsed.owner,
-          repo: shorthandParsed.repo,
-          branch: shorthandParsed.branch,
-          filePath: shorthandParsed.filePath,
-        });
-      }
-
-      // 4. Nothing worked - provide helpful error
-      throw new Error(
-        `Invalid template: "${value}". Use an alias (${templateAliases.join(", ")}), shorthand (owner/repo), or GitHub URL (https://github.com/owner/repo)`,
+export const parseTemplateSource = (
+  value: string,
+): Effect.Effect<GitHubTemplateSource, string> => {
+  if (value in TEMPLATE_ALIASES) {
+    const aliasUrl = TEMPLATE_ALIASES[value as TemplateAlias];
+    const parsed = parseGitHubUrl(aliasUrl);
+    if (parsed) {
+      return Effect.succeed(
+        new GitHubTemplateSource({
+          owner: parsed.owner,
+          repo: parsed.repo,
+          branch: parsed.branch,
+          filePath: parsed.filePath,
+          alias: value as TemplateAlias,
+        }),
       );
-    },
-    encode: (source) => source.displayName,
-  },
-);
+    }
+  }
+
+  const urlParsed = parseGitHubUrl(value);
+  if (urlParsed) {
+    return Effect.succeed(
+      new GitHubTemplateSource({
+        owner: urlParsed.owner,
+        repo: urlParsed.repo,
+        branch: urlParsed.branch,
+        filePath: urlParsed.filePath,
+      }),
+    );
+  }
+
+  const shorthandParsed = parseShorthand(value);
+  if (shorthandParsed) {
+    return Effect.succeed(
+      new GitHubTemplateSource({
+        owner: shorthandParsed.owner,
+        repo: shorthandParsed.repo,
+        branch: shorthandParsed.branch,
+        filePath: shorthandParsed.filePath,
+      }),
+    );
+  }
+
+  return Effect.fail(
+    `Invalid template: "${value}". Use an alias (${templateAliases.join(", ")}), shorthand (owner/repo), or GitHub URL (https://github.com/owner/repo)`,
+  );
+};

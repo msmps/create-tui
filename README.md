@@ -110,7 +110,7 @@ packages/
 
 ## Development
 
-The repository uses [Vite+](https://viteplus.dev/) for package management, checks, tests, and packaging. Node.js `^22.18.0`, `^24.11.0`, or `>=26.0.0` is required for development.
+The repository uses [Vite+](https://viteplus.dev/) for package management, checks, tests, and packaging. Node.js `^22.19.0`, `^24.11.0`, or `>=26.0.0` is required for development.
 
 ```bash
 npm install
