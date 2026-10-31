@@ -37,7 +37,7 @@ export class PackageManager extends Context.Service<
         yield* ChildProcessSpawner.ChildProcessSpawner;
       const packageManagerName = yield* detectPackageManager;
 
-      const install = Effect.fn(function* () {
+      const install = Effect.fn("PackageManager.install")(function* () {
         const projectSettings = yield* ProjectSettings;
 
         yield* Effect.logInfo(
@@ -52,28 +52,34 @@ export class PackageManager extends Context.Service<
         });
 
         const exitCode = yield* childProcessSpawner.exitCode(command).pipe(
-          Effect.mapError(
-            (cause) =>
-              new PackageManagerError({
-                cause,
-                message: cause.message,
-              }),
+          Effect.mapError((cause) =>
+            cause.reason._tag === "NotFound"
+              ? new PackageManagerError({
+                  cause,
+                  message: `${packageManagerName} is not installed or not on your PATH.`,
+                  hint: `Install ${packageManagerName}, or install the dependencies with another package manager.`,
+                })
+              : new PackageManagerError({
+                  cause,
+                  message: `Could not run ${packageManagerName} install: ${cause.message}`,
+                }),
           ),
         );
 
         if (exitCode !== 0) {
           return yield* new PackageManagerError({
-            message: `Package installation exited with code ${exitCode}.`,
+            message: `${packageManagerName} install failed (exit code ${exitCode}).`,
+            hint: `See the ${packageManagerName} output above for details.`,
           });
         }
 
         yield* Console.log();
       });
 
-      return {
+      return PackageManager.of({
         name: packageManagerName,
         install,
-      };
+      });
     }),
   );
 }

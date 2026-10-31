@@ -8,6 +8,7 @@ import {
 import { Cause, Effect, Layer, Logger, Option } from "effect";
 import { CliConfig, CliError, GlobalFlag } from "effect/cli";
 import { cli } from "../cli";
+import { isCreateTuiError } from "../domain/errors";
 import { PackageManager } from "../services/package-manager";
 import { Project } from "../services/project";
 import { TemplateDownloader } from "../services/template-downloader";
@@ -29,7 +30,14 @@ const MainLive = Layer.mergeAll(
   ),
   Layer.provideMerge(NodeServices.layer),
   Layer.provideMerge(NodeHttpClient.layerFetch),
-  Layer.provideMerge(Logger.layer([createLogger()])),
+  Layer.provideMerge(
+    Logger.layer([
+      createLogger({
+        stdoutColor: process.stdout.isTTY && process.env.NO_COLOR === undefined,
+        stderrColor: process.stderr.isTTY && process.env.NO_COLOR === undefined,
+      }),
+    ]),
+  ),
 );
 
 cli.pipe(
@@ -39,7 +47,12 @@ cli.pipe(
     }
 
     const error = Cause.findErrorOption(cause);
-    if (Option.isSome(error) && CliError.isCliError(error.value)) {
+    // CLI usage errors are printed by effect/cli, and create-tui errors are
+    // reported by the command itself; only unexpected failures remain.
+    if (
+      Option.isSome(error) &&
+      (CliError.isCliError(error.value) || isCreateTuiError(error.value))
+    ) {
       return Effect.void;
     }
 

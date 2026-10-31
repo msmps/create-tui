@@ -7,16 +7,22 @@ import {
   Option,
   Schema,
 } from "effect";
-import { HttpClient } from "effect/http";
+import { HttpClient, HttpClientResponse } from "effect/http";
 import semver from "semver";
 import packageJson from "../../package.json" with { type: "json" };
 import type { PackageManagerName } from "./package-manager";
 
 const currentVersion = packageJson.version;
 
+const SemverString = Schema.String.check(
+  Schema.makeFilter((version) => semver.valid(version) !== null, {
+    expected: "a semver version",
+  }),
+);
+
 const NpmRegistryResponseSchema = Schema.Struct({
   "dist-tags": Schema.Struct({
-    latest: Schema.String,
+    latest: SemverString,
   }),
 });
 
@@ -38,6 +44,11 @@ function getUpdateCommand(packageManager: PackageManagerName): string {
 export class UpdateChecker extends Context.Service<
   UpdateChecker,
   {
+    /**
+     * Best-effort check for a newer create-tui release. Never fails: problems
+     * (offline, timeout, unexpected registry response) are logged at debug
+     * level, visible with `--log-level debug`.
+     */
     readonly check: (options: {
       readonly packageManager: PackageManagerName;
     }) => Effect.Effect<void>;
@@ -51,8 +62,10 @@ export class UpdateChecker extends Context.Service<
       const fetchLatestVersion = httpClient
         .get("https://registry.npmjs.org/create-tui")
         .pipe(
-          Effect.flatMap((response) => response.json),
-          Effect.flatMap(Schema.decodeUnknownEffect(NpmRegistryResponseSchema)),
+          Effect.flatMap(HttpClientResponse.filterStatusOk),
+          Effect.flatMap(
+            HttpClientResponse.schemaBodyJson(NpmRegistryResponseSchema),
+          ),
           Effect.map((response) => response["dist-tags"].latest),
         );
 
@@ -77,7 +90,9 @@ export class UpdateChecker extends Context.Service<
           Effect.timeoutOption(UPDATE_CHECK_TIMEOUT),
           Effect.flatMap((maybeLatestVersion) => {
             if (Option.isNone(maybeLatestVersion)) {
-              return Effect.void;
+              return Effect.logDebug(
+                `Update check timed out after ${Duration.format(UPDATE_CHECK_TIMEOUT)}`,
+              );
             }
 
             const latestVersion = maybeLatestVersion.value;
@@ -90,7 +105,11 @@ export class UpdateChecker extends Context.Service<
               options.packageManager,
             );
           }),
-          Effect.catch(() => Effect.void),
+          // The update check is optional: report why it failed, but never
+          // fail project creation because of it.
+          Effect.catch((error) =>
+            Effect.logDebug(`Update check failed: ${error.message}`),
+          ),
         );
 
       return { check };
