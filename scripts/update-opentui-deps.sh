@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -29,13 +29,17 @@ print_error() {
 get_latest_version() {
     local package_name="$1"
     local result
-    result=$(bun info "$package_name" --json 2>/dev/null)
-    if [[ $? -eq 0 && -n "$result" ]]; then
-        # Extract the version from the JSON response
-        echo "$result" | jq -r '.version // empty' 2>/dev/null || echo ""
-    else
-        echo ""
+    local version
+
+    if ! result=$(bun info "$package_name" --json 2>/dev/null); then
+        return 1
     fi
+
+    if ! version=$(jq -er '.version | select(type == "string" and length > 0)' <<< "$result" 2>/dev/null); then
+        return 1
+    fi
+
+    printf '%s\n' "$version"
 }
 
 # Function to update @opentui/* dependencies in a package.json file
@@ -52,49 +56,69 @@ update_opentui_deps() {
     
     # Get current @opentui/* dependencies
     local opentui_deps
-    opentui_deps=$(jq -r '.dependencies // {} | to_entries[] | select(.key | startswith("@opentui/")) | .key' "$package_json" 2>/dev/null || echo "")
-    
-    if [[ -z "$opentui_deps" ]]; then
-        print_warning "No @opentui/* dependencies found in $template_name"
-        return 0
-    fi
-    
-    # Update each @opentui/* dependency
-    local has_updates=false
-    while IFS= read -r dep; do
-        if [[ -n "$dep" ]]; then
-            print_status "  Checking latest version for $dep..."
-            local latest_version
-            latest_version=$(get_latest_version "$dep")
-            
-            if [[ -n "$latest_version" ]]; then
-                # Get current version from package.json
-                local current_version
-                current_version=$(jq -r --arg dep "$dep" '.dependencies[$dep] // empty' "$package_json" 2>/dev/null)
-                local new_version="^$latest_version"
-                
-                if [[ "$current_version" != "$new_version" ]]; then
-                    print_status "  Updating $dep from $current_version to $new_version"
-                    # Use jq to update the dependency version
-                    jq --arg dep "$dep" --arg version "$new_version" \
-                       '.dependencies[$dep] = $version' \
-                       "$package_json" > "${package_json}.tmp" && mv "${package_json}.tmp" "$package_json"
-                    has_updates=true
-                else
-                    print_status "  $dep is already up to date ($current_version)"
-                fi
-            else
-                print_error "  Failed to get latest version for $dep"
-            fi
-        fi
-    done <<< "$opentui_deps"
-    
-    # Return whether updates were made
-    if [[ "$has_updates" == "true" ]]; then
-        return 0
-    else
+    if ! opentui_deps=$(jq -r '.dependencies // {} | to_entries[] | select(.key | startswith("@opentui/")) | .key' "$package_json"); then
+        print_error "Failed to parse $package_json"
         return 1
     fi
+
+    if [[ -z "$opentui_deps" ]]; then
+        print_warning "No @opentui/* dependencies found in $template_name"
+        return 10
+    fi
+    
+    # Update each @opentui/* dependency. OpenTUI framework packages pin
+    # @opentui/core exactly, so defer updates if a staggered release exposes
+    # different latest versions during the publish window.
+    local has_updates=false
+    local expected_version=""
+    while IFS= read -r dep; do
+        if [[ -z "$dep" ]]; then
+            continue
+        fi
+
+        print_status "  Checking latest version for $dep..."
+        local latest_version
+        if ! latest_version=$(get_latest_version "$dep"); then
+            print_error "  Failed to get latest version for $dep"
+            return 1
+        fi
+
+        if [[ -z "$expected_version" ]]; then
+            expected_version="$latest_version"
+        elif [[ "$latest_version" != "$expected_version" ]]; then
+            print_error "  OpenTUI release is incomplete: expected $expected_version but $dep latest is $latest_version"
+            return 1
+        fi
+
+        local current_version
+        if ! current_version=$(jq -er --arg dep "$dep" '.dependencies[$dep] | select(type == "string" and length > 0)' "$package_json"); then
+            print_error "  Failed to read $dep from $package_json"
+            return 1
+        fi
+        local new_version="^$latest_version"
+
+        if [[ "$current_version" == "$new_version" ]]; then
+            print_status "  $dep is already up to date ($current_version)"
+            continue
+        fi
+
+        print_status "  Updating $dep from $current_version to $new_version"
+        if ! jq --arg dep "$dep" --arg version "$new_version" \
+            '.dependencies[$dep] = $version' \
+            "$package_json" > "${package_json}.tmp"; then
+            rm -f "${package_json}.tmp"
+            print_error "  Failed to update $package_json"
+            return 1
+        fi
+        mv "${package_json}.tmp" "$package_json"
+        has_updates=true
+    done <<< "$opentui_deps"
+
+    if [[ "$has_updates" == "true" ]]; then
+        return 0
+    fi
+
+    return 10
 }
 
 # Regenerate the lockfile and verify the updated template.
@@ -109,9 +133,12 @@ update_lockfile() {
         return 1
     fi
     
-    cd "$template_dir"
-    
-    if bun install --lockfile-only && bun install --frozen-lockfile && bun run typecheck; then
+    if (
+        cd "$template_dir"
+        bun install --lockfile-only
+        bun install --frozen-lockfile
+        bun run typecheck
+    ); then
         print_success "  Lockfile updated and template verified for $template_name"
     else
         print_error "  Failed to update lockfile for $template_name"
@@ -165,9 +192,10 @@ main() {
             
             print_status "Processing template: $template_name"
             
-            # Update @opentui/* dependencies
+            # Update @opentui/* dependencies. Status 10 means that every
+            # dependency was checked successfully and no changes are needed.
+            local update_status=0
             if update_opentui_deps "$template_path/package.json" "$template_name"; then
-                # Dependencies were updated, so update lockfile
                 if update_lockfile "$template_path" "$template_name"; then
                     updated_count=$((updated_count + 1))
                     print_success "Successfully updated $template_name"
@@ -176,19 +204,15 @@ main() {
                     print_error "Failed to update lockfile for $template_name"
                 fi
             else
-                # No updates were needed or there was an error
-                # Check if there were any @opentui/* dependencies at all
-                local opentui_deps
-                opentui_deps=$(jq -r '.dependencies // {} | to_entries[] | select(.key | startswith("@opentui/")) | .key' "$template_path/package.json" 2>/dev/null || echo "")
-                
-                if [[ -n "$opentui_deps" ]]; then
+                update_status=$?
+                if [[ $update_status -eq 10 ]]; then
                     print_success "$template_name is already up to date"
                 else
-                    print_warning "No @opentui/* dependencies found in $template_name"
+                    failed_count=$((failed_count + 1))
+                    print_error "Failed to check updates for $template_name"
                 fi
             fi
-            
-            # Return to original directory
+
             cd "$original_dir"
             echo
         fi
