@@ -92,9 +92,9 @@ const create = (scenario: Scenario) => {
           UpdateChecker,
           UpdateChecker.of({ check: () => Effect.void }),
         ),
+        output.layer,
       ).pipe(Layer.provideMerge(NodeServices.layer)),
     ),
-    Effect.provide(output.layer),
     Effect.runPromise,
   );
   return { run, output };

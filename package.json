@@ -21,14 +21,14 @@
     "lint": "vp lint",
     "lint:fix": "vp lint --fix",
     "test": "vp test",
-    "typecheck": "vp exec tsc --noEmit -p tsconfig.json",
+    "typecheck": "vp exec effect-tsgo tsc --noEmit -p tsconfig.json",
     "check:templates": "bash scripts/check-templates.sh",
     "update:opentui": "bash scripts/update-opentui-deps.sh"
   },
   "devDependencies": {
-    "@effect/language-service": "^0.87.5",
+    "@effect/tsgo": "0.63.0",
     "@types/node": "^26.6.6",
-    "typescript": "^5",
+    "typescript": "7.0.2",
     "vite-plus": "1.4.0"
   },
   "overrides": {
