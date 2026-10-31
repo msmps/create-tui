@@ -9,8 +9,10 @@ import {
 } from "effect";
 import { HttpClient } from "effect/http";
 import semver from "semver";
-import { version as currentVersion } from "../../package.json" with { type: "json" };
+import packageJson from "../../package.json" with { type: "json" };
 import type { PackageManagerName } from "./package-manager";
+
+const currentVersion = packageJson.version;
 
 const NpmRegistryResponseSchema = Schema.Struct({
   "dist-tags": Schema.Struct({

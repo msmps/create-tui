@@ -1,8 +1,10 @@
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http";
 import { Effect, Layer, Logger } from "effect";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
-import { version as currentVersion } from "../../package.json" with { type: "json" };
+import packageJson from "../../package.json" with { type: "json" };
 import { UpdateChecker } from "./update-checker";
+
+const currentVersion = packageJson.version;
 
 function createMockHttpClient(latestVersion: string) {
   const mockClient: HttpClient.HttpClient = HttpClient.make((request) =>

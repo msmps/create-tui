@@ -1,6 +1,6 @@
 import { Console, Effect, Option, Path } from "effect";
 import { Argument, CliError, Command, Flag, Prompt } from "effect/cli";
-import { version as packageVersion } from "../package.json" with { type: "json" };
+import packageJson from "../package.json" with { type: "json" };
 import {
   type GitHubTemplateSource,
   parseTemplateSource,
@@ -9,6 +9,8 @@ import {
 import { createProject } from "./handler";
 import { ProjectSettings } from "./project-settings";
 import { validateProjectName } from "./utils/validate-project-name";
+
+const packageVersion = packageJson.version;
 
 const projectName = Argument.String("project-name").pipe(
   Argument.withDescription("The folder to bootstrap the project in"),
