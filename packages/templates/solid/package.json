@@ -8,15 +8,15 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/bun": "1.3.14",
+    "@types/bun": "1.4.4",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@opentui/core": "^0.7.0",
-    "@opentui/solid": "^0.7.0",
-    "solid-js": "1.9.12"
+    "@opentui/core": "^0.8.1",
+    "@opentui/solid": "^0.8.1",
+    "solid-js": "^1.9.18"
   },
   "engines": {
-    "bun": ">=1.3.0"
+    "bun": ">=1.3.14"
   }
 }

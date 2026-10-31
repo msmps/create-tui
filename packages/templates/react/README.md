@@ -1,6 +1,6 @@
 # react
 
-Requires [Bun](https://bun.sh/) 1.3.0 or later.
+Requires [Bun](https://bun.sh/) 1.3.14 or later. See the [OpenTUI runtime support documentation](https://opentui.com/docs/getting-started/runtime-support/) for platform requirements.
 
 To install dependencies:
 
