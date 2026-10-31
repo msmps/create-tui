@@ -1,6 +1,7 @@
 {
-  "typescript.tsdk": "./node_modules/typescript/lib",
-  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "js/ts.experimental.useTsgo": true,
+  "js/ts.tsdk.path": "./node_modules/typescript/bin",
+  "js/ts.tsdk.promptToUseWorkspaceVersion": true,
   "editor.defaultFormatter": "oxc.oxc-vscode",
   "[javascript]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
   "[javascriptreact]": { "editor.defaultFormatter": "oxc.oxc-vscode" },

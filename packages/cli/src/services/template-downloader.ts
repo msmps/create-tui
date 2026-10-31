@@ -281,22 +281,22 @@ export class TemplateDownloader extends Context.Service<
               Effect.flatMap(
                 HttpClientResponse.schemaBodyJson(GitHubRepositorySchema),
               ),
-              Effect.catchTag("HttpClientError", (cause) =>
-                Effect.fail(
-                  gitHubValidationError(template, { _tag: "Repository" })(
-                    cause,
+              Effect.catchTags({
+                HttpClientError: (cause) =>
+                  Effect.fail(
+                    gitHubValidationError(template, { _tag: "Repository" })(
+                      cause,
+                    ),
                   ),
-                ),
-              ),
-              Effect.catchTag("SchemaError", (cause) =>
-                Effect.fail(
-                  new TemplateValidationError({
-                    cause,
-                    message: `Could not determine the default branch of ${template.owner}/${template.repo}`,
-                    hint: "Include the branch in the URL: https://github.com/owner/repo/tree/<branch>",
-                  }),
-                ),
-              ),
+                SchemaError: (cause) =>
+                  Effect.fail(
+                    new TemplateValidationError({
+                      cause,
+                      message: `Could not determine the default branch of ${template.owner}/${template.repo}`,
+                      hint: "Include the branch in the URL: https://github.com/owner/repo/tree/<branch>",
+                    }),
+                  ),
+              }),
             );
 
           return response.default_branch;

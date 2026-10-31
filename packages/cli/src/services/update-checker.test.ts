@@ -36,8 +36,12 @@ const runCheck = async (registry: Layer.Layer<HttpClient.HttpClient>) => {
     const updateChecker = yield* UpdateChecker;
     yield* updateChecker.check({ packageManager: "bun" });
   }).pipe(
-    Effect.provide(UpdateChecker.layer.pipe(Layer.provide(registry))),
-    Effect.provide(output.layer),
+    Effect.provide(
+      Layer.mergeAll(
+        UpdateChecker.layer.pipe(Layer.provide(registry)),
+        output.layer,
+      ),
+    ),
     Effect.runPromise,
   );
   return output;

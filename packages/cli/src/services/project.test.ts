@@ -1,4 +1,4 @@
-import { Effect, Exit, Option } from "effect";
+import { Effect, Exit, Layer, Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { parseTemplateSource } from "../domain/template";
 import { ProjectSettings } from "../project-settings";
@@ -53,8 +53,7 @@ const initializeGit = (
       }),
     );
   }).pipe(
-    Effect.provide(Project.layer),
-    Effect.provide(spawner.layer),
+    Effect.provide(Project.layer.pipe(Layer.provide(spawner.layer))),
     Effect.runPromiseExit,
   );
   return { run, spawned: spawner.spawned };

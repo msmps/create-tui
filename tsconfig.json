@@ -1,4 +1,5 @@
 {
+  "$schema": "./node_modules/@effect/tsgo/schema.json",
   // Type-checks the CLI package (source, tests, scripts) and Vite+ configs.
   // Templates are Bun projects with their own tsconfig; see check:templates.
   "compilerOptions": {
@@ -28,9 +29,15 @@
     "skipLibCheck": true,
 
     // Language service
+    // Effect diagnostics, run by `effect-tsgo tsc` in the typecheck script.
     "plugins": [
       {
-        "name": "@effect/language-service"
+        "name": "@effect/language-service",
+        "diagnosticSeverity": {
+          // The CLI relies on effect/cli, effect/http and effect/process by
+          // design; their versions are pinned exactly in packages/cli instead.
+          "unstableApiUsage": "off"
+        }
       }
     ]
   },

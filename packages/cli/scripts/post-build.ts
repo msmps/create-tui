@@ -34,8 +34,7 @@ const postBuild = Effect.gen(function* () {
     .readFileString(path.join(rootDir, "package.json"))
     .pipe(Effect.flatMap(Schema.decodeEffect(PackageJson)));
 
-  const { bin, main } =
-    yield* Schema.decodeUnknownEffect(PublishedPaths)(packageJson);
+  const { bin, main } = yield* Schema.decodeEffect(PublishedPaths)(packageJson);
   const publishedBin =
     bin === undefined
       ? undefined

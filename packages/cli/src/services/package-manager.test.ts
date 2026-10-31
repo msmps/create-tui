@@ -54,16 +54,17 @@ describe("PackageManager.install", () => {
         }),
       );
     }).pipe(
-      Effect.provide(PackageManager.layer),
       Effect.provide(
-        Layer.mergeAll(
-          spawner.layer,
-          ConfigProvider.layer(
-            ConfigProvider.fromUnknown({
-              npm_config_user_agent:
-                "pnpm/10.0.0 npm/? node/v24.11.0 linux x64",
-            }),
-          ),
+        PackageManager.layer.pipe(
+          Layer.provide([
+            spawner.layer,
+            ConfigProvider.layer(
+              ConfigProvider.fromUnknown({
+                npm_config_user_agent:
+                  "pnpm/10.0.0 npm/? node/v24.11.0 linux x64",
+              }),
+            ),
+          ]),
         ),
       ),
       Effect.runPromiseExit,
