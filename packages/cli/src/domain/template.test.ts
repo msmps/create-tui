@@ -42,8 +42,20 @@ describe("parseTemplateSource", () => {
   });
 
   it("rejects invalid template sources", async () => {
-    await expect(parse("not-a-template")).rejects.toBe(
-      'Invalid template: "not-a-template". Use an alias (core, react, solid), shorthand (owner/repo), or GitHub URL (https://github.com/owner/repo)',
-    );
+    await expect(parse("not-a-template")).rejects.toMatchObject({
+      _tag: "InvalidTemplateSourceError",
+      input: "not-a-template",
+      message:
+        'Invalid template: "not-a-template". Use an alias (core, react, solid), shorthand (owner/repo), or GitHub URL (https://github.com/owner/repo)',
+    });
   });
+
+  it.each(["toString", "constructor", "__proto__"])(
+    "does not treat the object property %s as an alias",
+    async (value) => {
+      await expect(parse(value)).rejects.toMatchObject({
+        _tag: "InvalidTemplateSourceError",
+      });
+    },
+  );
 });

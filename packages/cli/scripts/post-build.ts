@@ -1,95 +1,78 @@
-import { NodeServices } from "@effect/platform-node";
-import { FileSystem, Path } from "effect";
-import * as Console from "effect/Console";
-import * as Effect from "effect/Effect";
+import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import { Console, Effect, FileSystem, Path, Schema } from "effect";
 
-type PackageJson = {
-  bin?: Record<string, string>;
-  main?: string;
-  scripts?: unknown;
-  devDependencies?: unknown;
-  peerDependencies?: unknown;
-  [key: string]: unknown;
-};
+const PackageJson = Schema.fromJsonString(
+  Schema.Record(Schema.String, Schema.Unknown),
+);
+
+/** The package.json fields this script rewrites. */
+const PublishedPaths = Schema.Struct({
+  bin: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
+  main: Schema.optionalKey(Schema.String),
+});
+
+const DEVELOPMENT_ONLY_FIELDS: ReadonlySet<string> = new Set([
+  "scripts",
+  "devDependencies",
+  "peerDependencies",
+]);
+
+/** Drop the `dist/` prefix: the published package root is the dist folder. */
+const stripDist = (value: string) => value.replace(/^dist\//, "");
 
 const postBuild = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
 
-  // Define paths
   const rootDir = path.resolve(".");
   const distDir = path.join(rootDir, "dist");
-  const packageJsonPath = path.join(rootDir, "package.json");
-  const readmePath = path.join(rootDir, "README.md");
-  const distPackageJsonPath = path.join(distDir, "package.json");
-  const distReadmePath = path.join(distDir, "README.md");
 
   yield* Console.log("📦 Starting post-build process...");
 
-  // Read and parse package.json
   yield* Console.log("📄 Reading package.json...");
   const packageJson = yield* fs
-    .readFileString(packageJsonPath)
-    .pipe(Effect.map((json) => JSON.parse(json) as PackageJson));
+    .readFileString(path.join(rootDir, "package.json"))
+    .pipe(Effect.flatMap(Schema.decodeEffect(PackageJson)));
 
-  // Update bin paths to be relative to dist
-  yield* Console.log("🔧 Updating bin paths...");
-  if (packageJson.bin) {
-    const updatedBin: Record<string, string> = {};
-    for (const [command, binPath] of Object.entries(packageJson.bin)) {
-      // Remove 'dist/' prefix if it exists since we're now in the dist folder
-      const cleanPath = binPath.replace(/^dist\//, "");
-      updatedBin[command] = cleanPath;
-    }
-    packageJson.bin = updatedBin;
-  }
+  const { bin, main } =
+    yield* Schema.decodeUnknownEffect(PublishedPaths)(packageJson);
+  const publishedBin =
+    bin === undefined
+      ? undefined
+      : Object.fromEntries(
+          Object.entries(bin).map(([command, binPath]) => [
+            command,
+            stripDist(binPath),
+          ]),
+        );
 
-  // Update main entry point
-  if (packageJson.main) {
-    packageJson.main = packageJson.main.replace(/^dist\//, "");
-  }
-
-  // Remove scripts that don't make sense in the published package
-  delete packageJson.scripts;
-
-  // Remove devDependencies for published package
-  delete packageJson.devDependencies;
-  delete packageJson.peerDependencies;
-
-  // Write updated package.json to dist
-  yield* Console.log("💾 Writing updated package.json to dist/...");
-  yield* fs.writeFileString(
-    distPackageJsonPath,
-    JSON.stringify(packageJson, null, 2),
+  // Keep the original key order; drop fields that only matter in development.
+  const published = Object.fromEntries(
+    Object.entries(packageJson)
+      .filter(([key]) => !DEVELOPMENT_ONLY_FIELDS.has(key))
+      .map(([key, value]) =>
+        key === "bin"
+          ? [key, publishedBin]
+          : key === "main" && main !== undefined
+            ? [key, stripDist(main)]
+            : [key, value],
+      ),
   );
 
-  // Copy README.md to dist
+  yield* Console.log("💾 Writing updated package.json to dist/...");
+  const json = JSON.stringify(published, null, 2);
+  yield* fs.writeFileString(path.join(distDir, "package.json"), `${json}\n`);
+
   yield* Console.log("📖 Copying README.md to dist/...");
-  const readmeContent = yield* fs.readFileString(readmePath);
-  yield* fs.writeFileString(distReadmePath, readmeContent);
+  yield* fs.copyFile(
+    path.join(rootDir, "README.md"),
+    path.join(distDir, "README.md"),
+  );
 
   yield* Console.log("✅ Post-build process completed successfully!");
-
-  // Log the updated bin paths for verification
-  if (packageJson.bin) {
-    yield* Console.log("🔗 Updated bin paths:");
-    for (const [command, binPath] of Object.entries(packageJson.bin)) {
-      yield* Console.log(`  ${command}: ${binPath}`);
-    }
+  for (const [command, binPath] of Object.entries(publishedBin ?? {})) {
+    yield* Console.log(`🔗 ${command}: ${binPath}`);
   }
 });
 
-// Run the post-build script
-const program = postBuild.pipe(
-  Effect.catch((error) =>
-    Console.error(`❌ Post-build failed: ${String(error)}`).pipe(
-      Effect.flatMap(() => Effect.fail(error)),
-    ),
-  ),
-  Effect.provide(NodeServices.layer),
-);
-
-Effect.runPromise(program).catch((error) => {
-  console.error("❌ Post-build script failed:", error);
-  process.exit(1);
-});
+postBuild.pipe(Effect.provide(NodeServices.layer), NodeRuntime.runMain);

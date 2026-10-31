@@ -68,7 +68,7 @@ const download = (template: string, route: Route) =>
 const failure = async (template: string, route: Route) => {
   const exit = await download(template, route);
   const error = Option.getOrUndefined(Exit.findErrorOption(exit));
-  if (error === undefined || typeof error === "string") {
+  if (error === undefined || error._tag === "InvalidTemplateSourceError") {
     throw new Error(`Expected a download error, got ${String(exit)}`);
   }
   return error;

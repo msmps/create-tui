@@ -1,81 +1,10 @@
+import { isBuiltin } from "node:module";
 import { Effect, Path } from "effect";
 import { CliError } from "effect/cli";
 
 const SCOPED_PACKAGE_REGEX = /^(?:@([^/]+?)[/])?([^/]+?)$/;
 
 const blockList = ["node_modules", "favicon.ico"];
-
-// Generated with node -e 'console.log(require("module").builtinModules)'
-const nodeBuiltins = [
-  "_http_agent",
-  "_http_client",
-  "_http_common",
-  "_http_incoming",
-  "_http_outgoing",
-  "_http_server",
-  "_stream_duplex",
-  "_stream_passthrough",
-  "_stream_readable",
-  "_stream_transform",
-  "_stream_wrap",
-  "_stream_writable",
-  "_tls_common",
-  "_tls_wrap",
-  "assert",
-  "assert/strict",
-  "async_hooks",
-  "buffer",
-  "child_process",
-  "cluster",
-  "console",
-  "constants",
-  "crypto",
-  "dgram",
-  "diagnostics_channel",
-  "dns",
-  "dns/promises",
-  "domain",
-  "events",
-  "fs",
-  "fs/promises",
-  "http",
-  "http2",
-  "https",
-  "inspector",
-  "inspector/promises",
-  "module",
-  "net",
-  "os",
-  "path",
-  "path/posix",
-  "path/win32",
-  "perf_hooks",
-  "process",
-  "punycode",
-  "querystring",
-  "readline",
-  "readline/promises",
-  "repl",
-  "stream",
-  "stream/consumers",
-  "stream/promises",
-  "stream/web",
-  "string_decoder",
-  "sys",
-  "timers",
-  "timers/promises",
-  "tls",
-  "trace_events",
-  "tty",
-  "url",
-  "util",
-  "util/types",
-  "v8",
-  "vm",
-  "wasi",
-  "worker_threads",
-  "zlib",
-];
 
 const invalid = (message: string) =>
   Effect.fail(new CliError.ValidationError({ message }));
@@ -103,15 +32,12 @@ export function validateProjectName(
   if (name.match(/^_/)) {
     return invalid("Project name must not start with an underscore");
   }
-  if (/[~'!()*]/.test(name.split("/").slice(-1)[0])) {
+  if (/[~'!()*]/.test(name.split("/").at(-1) ?? "")) {
     return invalid(
       "Project name must not contain the special characters ~'!()*",
     );
   }
-  const isNodeBuiltin = nodeBuiltins.some((builtinName) => {
-    return name.toLowerCase() === builtinName;
-  });
-  if (isNodeBuiltin) {
+  if (isBuiltin(name)) {
     return invalid("Project name must not be a NodeJS built-in module name");
   }
   const isBlockedName = blockList.some((blockedName) => {

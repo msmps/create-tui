@@ -1,19 +1,23 @@
 import { Data, Effect } from "effect";
 
 /**
- * Template aliases map friendly names to their GitHub URLs.
- * Adding a new built-in template is as simple as adding a new entry here.
+ * Built-in template names. Each resolves to `packages/templates/<alias>` in
+ * the create-tui repository; adding a template means adding its name here.
  */
-export const TEMPLATE_ALIASES = {
-  core: "https://github.com/msmps/create-tui/tree/main/packages/templates/core",
-  react:
-    "https://github.com/msmps/create-tui/tree/main/packages/templates/react",
-  solid:
-    "https://github.com/msmps/create-tui/tree/main/packages/templates/solid",
-} as const;
+export const templateAliases = ["core", "react", "solid"] as const;
 
-export type TemplateAlias = keyof typeof TEMPLATE_ALIASES;
-export const templateAliases = Object.keys(TEMPLATE_ALIASES) as TemplateAlias[];
+export type TemplateAlias = (typeof templateAliases)[number];
+
+const toTemplateAlias = (value: string): TemplateAlias | undefined =>
+  templateAliases.find((alias) => alias === value);
+
+/** The input is not an alias, GitHub shorthand, or GitHub URL. */
+export class InvalidTemplateSourceError extends Data.TaggedError(
+  "InvalidTemplateSourceError",
+)<{
+  readonly input: string;
+  readonly message: string;
+}> {}
 
 /**
  * Parses a GitHub URL and extracts repo information.
@@ -130,21 +134,18 @@ export class GitHubTemplateSource extends Data.TaggedClass("GitHubTemplate")<{
  */
 export const parseTemplateSource = (
   value: string,
-): Effect.Effect<GitHubTemplateSource, string> => {
-  if (value in TEMPLATE_ALIASES) {
-    const aliasUrl = TEMPLATE_ALIASES[value as TemplateAlias];
-    const parsed = parseGitHubUrl(aliasUrl);
-    if (parsed) {
-      return Effect.succeed(
-        new GitHubTemplateSource({
-          owner: parsed.owner,
-          repo: parsed.repo,
-          branch: parsed.branch,
-          filePath: parsed.filePath,
-          alias: value as TemplateAlias,
-        }),
-      );
-    }
+): Effect.Effect<GitHubTemplateSource, InvalidTemplateSourceError> => {
+  const alias = toTemplateAlias(value);
+  if (alias !== undefined) {
+    return Effect.succeed(
+      new GitHubTemplateSource({
+        owner: "msmps",
+        repo: "create-tui",
+        branch: "main",
+        filePath: `packages/templates/${alias}`,
+        alias,
+      }),
+    );
   }
 
   const urlParsed = parseGitHubUrl(value);
@@ -172,6 +173,9 @@ export const parseTemplateSource = (
   }
 
   return Effect.fail(
-    `Invalid template: "${value}". Use an alias (${templateAliases.join(", ")}), shorthand (owner/repo), or GitHub URL (https://github.com/owner/repo)`,
+    new InvalidTemplateSourceError({
+      input: value,
+      message: `Invalid template: "${value}". Use an alias (${templateAliases.join(", ")}), shorthand (owner/repo), or GitHub URL (https://github.com/owner/repo)`,
+    }),
   );
 };
