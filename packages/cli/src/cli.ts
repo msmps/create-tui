@@ -6,8 +6,10 @@ import {
   parseTemplateSource,
   templateAliases,
 } from "./domain/template";
+import { isCreateTuiError } from "./domain/errors";
 import { createProject } from "./handler";
 import { ProjectSettings } from "./project-settings";
+import { reportFailure } from "./utils/logger";
 import {
   resolveProjectPath,
   validateProjectName,
@@ -112,6 +114,11 @@ function handleCommand(args: {
     const projectPath = yield* resolveProjectPath(resolvedProjectName);
 
     return yield* createProject().pipe(
+      Effect.tapError((error) =>
+        isCreateTuiError(error)
+          ? reportFailure("Error", error, args.verbose)
+          : Effect.void,
+      ),
       ProjectSettings.provide({
         projectName: resolvedProjectName,
         projectPath,
