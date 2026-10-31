@@ -1,4 +1,4 @@
-import { Console, Effect, Option, Path } from "effect";
+import { Console, Effect, Option } from "effect";
 import { Argument, CliError, Command, Flag, Prompt } from "effect/cli";
 import packageJson from "../package.json" with { type: "json" };
 import {
@@ -8,7 +8,10 @@ import {
 } from "./domain/template";
 import { createProject } from "./handler";
 import { ProjectSettings } from "./project-settings";
-import { validateProjectName } from "./utils/validate-project-name";
+import {
+  resolveProjectPath,
+  validateProjectName,
+} from "./utils/validate-project-name";
 
 const packageVersion = packageJson.version;
 
@@ -106,8 +109,7 @@ function handleCommand(args: {
           ),
         );
 
-    const path = yield* Path.Path;
-    const projectPath = path.resolve(resolvedProjectName);
+    const projectPath = yield* resolveProjectPath(resolvedProjectName);
 
     return yield* createProject().pipe(
       ProjectSettings.provide({
