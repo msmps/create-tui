@@ -51,13 +51,15 @@ const projectTemplate = Flag.String("template").pipe(
   ),
   Flag.mapEffect((value) =>
     parseTemplateSource(value).pipe(
-      Effect.mapError((message) => new CliError.ValidationError({ message })),
+      Effect.mapError(
+        (error) => new CliError.ValidationError({ message: error.message }),
+      ),
     ),
   ),
   Flag.optional,
 );
 
-function handleCommand(args: {
+const handleCommand = Effect.fn("handleCommand")(function* (args: {
   readonly projectName: Option.Option<string>;
   readonly projectTemplate: Option.Option<GitHubTemplateSource>;
   readonly noGit: boolean;
@@ -65,71 +67,67 @@ function handleCommand(args: {
   readonly showVersion: boolean;
   readonly verbose: boolean;
 }) {
-  return Effect.gen(function* () {
-    if (args.showVersion) {
-      yield* Console.log(packageVersion);
-      return;
-    }
-    const resolvedProjectName = Option.isSome(args.projectName)
-      ? args.projectName.value
-      : yield* Prompt.String({
-          message: "What is your project named?",
-          default: "my-opentui-project",
-          validate: (name) =>
-            validateProjectName(name).pipe(
-              Effect.mapError((error) => error.message),
-            ),
-        });
-
-    const resolvedProjectTemplate = Option.isSome(args.projectTemplate)
-      ? args.projectTemplate.value
-      : yield* Prompt.Select({
-          message: "Which template do you want to use?",
-          choices: [
-            { title: "Core", value: "core" },
-            { title: "React", value: "react" },
-            { title: "Solid", value: "solid" },
-            {
-              title: "Custom (GitHub URL or shorthand)",
-              value: "__custom__",
-            },
-          ],
-        }).pipe(
-          Effect.flatMap((value) =>
-            value === "__custom__"
-              ? Prompt.String({
-                  message:
-                    "Enter template (owner/repo, owner/repo/path, or full GitHub URL):",
-                })
-              : Effect.succeed(value),
+  if (args.showVersion) {
+    yield* Console.log(packageVersion);
+    return;
+  }
+  const resolvedProjectName = Option.isSome(args.projectName)
+    ? args.projectName.value
+    : yield* Prompt.String({
+        message: "What is your project named?",
+        default: "my-opentui-project",
+        validate: (name) =>
+          validateProjectName(name).pipe(
+            Effect.mapError((error) => error.message),
           ),
-          Effect.flatMap(parseTemplateSource),
-          Effect.mapError((error) =>
-            typeof error === "string"
-              ? new CliError.ValidationError({ message: error })
-              : error,
-          ),
-        );
+      });
 
-    const projectPath = yield* resolveProjectPath(resolvedProjectName);
+  const resolvedProjectTemplate = Option.isSome(args.projectTemplate)
+    ? args.projectTemplate.value
+    : yield* Prompt.Select({
+        message: "Which template do you want to use?",
+        choices: [
+          { title: "Core", value: "core" },
+          { title: "React", value: "react" },
+          { title: "Solid", value: "solid" },
+          {
+            title: "Custom (GitHub URL or shorthand)",
+            value: "__custom__",
+          },
+        ],
+      }).pipe(
+        Effect.flatMap((value) =>
+          value === "__custom__"
+            ? Prompt.String({
+                message:
+                  "Enter template (owner/repo, owner/repo/path, or full GitHub URL):",
+              })
+            : Effect.succeed(value),
+        ),
+        Effect.flatMap(parseTemplateSource),
+        Effect.catchTag("InvalidTemplateSourceError", (error) =>
+          Effect.fail(new CliError.ValidationError({ message: error.message })),
+        ),
+      );
 
-    return yield* createProject().pipe(
-      Effect.tapError((error) =>
-        isCreateTuiError(error)
-          ? reportFailure("Error", error, args.verbose)
-          : Effect.void,
-      ),
-      ProjectSettings.provide({
-        projectName: resolvedProjectName,
-        projectPath,
-        projectTemplate: resolvedProjectTemplate,
-        skipGit: args.noGit,
-        skipInstall: args.noInstall,
-        verbose: args.verbose,
-      }),
-    );
-  });
-}
+  const projectPath = yield* resolveProjectPath(resolvedProjectName);
+
+  return yield* createProject().pipe(
+    Effect.tapError((error) =>
+      isCreateTuiError(error)
+        ? reportFailure("Error", error, args.verbose)
+        : Effect.void,
+    ),
+    ProjectSettings.provide({
+      projectName: resolvedProjectName,
+      projectPath,
+      projectTemplate: resolvedProjectTemplate,
+      skipGit: args.noGit,
+      skipInstall: args.noInstall,
+      verbose: args.verbose,
+    }),
+  );
+});
 
 const command = Command.make(
   "create-tui",

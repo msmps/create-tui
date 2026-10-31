@@ -25,7 +25,6 @@
     "create-tui": "dist/bin.js"
   },
   "type": "module",
-  "sideEffects": false,
   "scripts": {
     "build": "vp pack",
     "postbuild": "vpx scripts/post-build.ts",
@@ -33,16 +32,13 @@
     "prepublishOnly": "vp run build"
   },
   "dependencies": {
-    "@effect/platform-node": "^4.1.0",
-    "effect": "^4.1.0",
+    "@effect/platform-node": "4.1.0",
+    "effect": "4.1.0",
     "semver": "^7.8.5",
     "tar": "^7.5.22"
   },
   "devDependencies": {
     "@types/semver": "^7.8.0"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
   },
   "engines": {
     "node": ">=22.19.0"
