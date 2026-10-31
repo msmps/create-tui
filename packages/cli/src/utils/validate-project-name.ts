@@ -1,5 +1,5 @@
+import { Effect, Path } from "effect";
 import { CliError } from "effect/cli";
-import * as Effect from "effect/Effect";
 
 const SCOPED_PACKAGE_REGEX = /^(?:@([^/]+?)[/])?([^/]+?)$/;
 
@@ -121,20 +121,50 @@ export function validateProjectName(
     return invalid(`Project name '${name}' is blocked from use`);
   }
   if (encodeURIComponent(name) !== name) {
-    // Check scoped packages
+    // Only a scoped package name (@scope/name) may contain a slash.
     const result = name.match(SCOPED_PACKAGE_REGEX);
-    if (result) {
-      const user = result[1];
-      const pkg = result[2];
-      if (
-        encodeURIComponent(user) !== user ||
-        encodeURIComponent(pkg) !== pkg
-      ) {
-        return invalid(
-          "Project name must only contain URL-friendly characters",
-        );
-      }
+    const scope = result?.[1];
+    const pkg = result?.[2];
+    if (
+      scope === undefined ||
+      pkg === undefined ||
+      encodeURIComponent(scope) !== scope ||
+      encodeURIComponent(pkg) !== pkg
+    ) {
+      return invalid("Project name must only contain URL-friendly characters");
+    }
+    if (pkg.startsWith(".") || pkg.startsWith("_")) {
+      return invalid(
+        "Project name must not start with a period or underscore after the scope",
+      );
     }
   }
   return Effect.succeed(name);
 }
+
+/**
+ * Resolves the project folder and guarantees it is a new folder strictly
+ * inside the current working directory, so later steps (including deleting an
+ * existing folder) can never touch anything outside it.
+ */
+export const resolveProjectPath = Effect.fn("resolveProjectPath")(function* (
+  name: string,
+) {
+  const path = yield* Path.Path;
+  const cwd = path.resolve(".");
+  const projectPath = path.resolve(cwd, name);
+  const relative = path.relative(cwd, projectPath);
+
+  if (
+    relative === "" ||
+    relative === ".." ||
+    relative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relative)
+  ) {
+    return yield* invalid(
+      `Project folder must be inside the current directory (${cwd})`,
+    );
+  }
+
+  return projectPath;
+});
