@@ -15,6 +15,31 @@ export default defineConfig({
     env: {
       node: true,
     },
+    overrides: [
+      {
+        // Templates are Bun projects with uninstalled dependencies here; they
+        // are type-checked by check:templates, so strict rules target the CLI.
+        files: ["packages/cli/**/*.ts", "vite.config.ts"],
+        rules: {
+          // Type escape hatches: parse unknown input instead of asserting its type.
+          "typescript/no-explicit-any": "error",
+          "typescript/no-non-null-assertion": "error",
+          "typescript/ban-ts-comment": "error",
+          "typescript/consistent-type-assertions": [
+            "error",
+            { assertionStyle: "never" },
+          ],
+          "typescript/no-unsafe-argument": "error",
+          "typescript/no-unsafe-assignment": "error",
+          "typescript/no-unsafe-call": "error",
+          "typescript/no-unsafe-member-access": "error",
+          "typescript/no-unsafe-return": "error",
+          // Unhandled promises hide failures.
+          "typescript/no-floating-promises": "error",
+          "typescript/no-misused-promises": "error",
+        },
+      },
+    ],
   },
   fmt: {
     ignorePatterns: [".repos/**", "**/dist/**", "packages/templates/**"],

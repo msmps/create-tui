@@ -1,37 +1,31 @@
 {
+  // Type-checks the CLI package (source, tests, scripts) and Vite+ configs.
+  // Templates are Bun projects with their own tsconfig; see check:templates.
   "compilerOptions": {
-    // Environment setup & latest features
+    // Environment: the CLI runs on Node.js (see engines in packages/cli).
     "lib": ["ESNext"],
     "types": ["node"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
-    "jsx": "react-jsx",
-    "allowJs": true,
 
-    // Bundler mode
+    // Bundler mode: vp pack bundles the CLI; tsc only type-checks.
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
     "noEmit": true,
 
-    // Best practices
+    // Strictness
     "strict": true,
-    "skipLibCheck": true,
-    "strictNullChecks": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
-    "noImplicitAny": true,
-
-    // Performance
-    "incremental": true,
-    "composite": true,
-
-    // Some stricter flags (disabled by default)
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false,
+    "noUnusedParameters": true,
+    "skipLibCheck": true,
 
     // Language service
     "plugins": [

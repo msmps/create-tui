@@ -114,10 +114,15 @@ The repository uses [Vite+](https://viteplus.dev/) for package management, check
 
 ```bash
 npm install
-npm run check
+npm run dev -- --help   # run the CLI from source
+npm run check           # format, lint, and typecheck
 npm test
 npm run build
 ```
+
+`npm run dev` runs the CLI from `packages/cli`, so a project created with `npm run dev -- my-app` is written to `packages/cli/my-app`. Pass `--verbose` to see the underlying cause of a failure, and `--log-level debug` to see why the update check was skipped.
+
+CI (`.github/workflows/ci.yml`) runs the same commands on every supported Node.js major, then smoke-tests the dev entrypoint and the packed package.
 
 Bun is only required for validating and updating the OpenTUI templates:
 

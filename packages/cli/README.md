@@ -136,7 +136,7 @@ Update available! 1.0.0 -> 1.1.0
 Run bun add -g create-tui@latest to update
 ```
 
-This check is non-blocking and times out after 3 seconds to avoid slowing down the CLI.
+This check is non-blocking and times out after 3 seconds to avoid slowing down the CLI. Run with `--log-level debug` to see why a check did not complete.
 
 ## Development
 

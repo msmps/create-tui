@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cli:
+    name: CLI (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Mirrors engines in package.json: ^22.19.0 || ^24.11.0 || >=26.0.0
+        node: [22, 24, 26]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format, lint, and typecheck
+        run: npm run check
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Type checking and tests use Vite semantics; these run the CLI the way
+      # Node does, which is where module-loading bugs show up.
+      - name: Smoke test the dev entrypoint
+        run: npm run dev -- --version
+
+      - name: Smoke test the packed package
+        run: |
+          (cd packages/cli/dist && npm pack --silent)
+          smoke_dir="$RUNNER_TEMP/create-tui-smoke"
+          mkdir -p "$smoke_dir"
+          cd "$smoke_dir"
+          npm init -y > /dev/null
+          npm install "$GITHUB_WORKSPACE"/packages/cli/dist/create-tui-*.tgz
+          npx --no-install create-tui --version

@@ -2,7 +2,7 @@ name: Update OpenTUI Dependencies
 
 on:
   schedule:
-    # Run at 9:00 AM UTC
+    # Run daily at 00:00 UTC
     - cron: "0 0 * * *"
   workflow_dispatch:
     # Allow manual triggering
