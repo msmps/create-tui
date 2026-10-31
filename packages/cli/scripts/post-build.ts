@@ -1,5 +1,5 @@
-import { FileSystem, Path } from "@effect/platform";
-import { NodeContext } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
+import { FileSystem, Path } from "effect";
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 
@@ -81,12 +81,12 @@ const postBuild = Effect.gen(function* () {
 
 // Run the post-build script
 const program = postBuild.pipe(
-  Effect.catchAll((error) =>
+  Effect.catch((error) =>
     Console.error(`❌ Post-build failed: ${String(error)}`).pipe(
       Effect.flatMap(() => Effect.fail(error)),
     ),
   ),
-  Effect.provide(NodeContext.layer),
+  Effect.provide(NodeServices.layer),
 );
 
 Effect.runPromise(program).catch((error) => {

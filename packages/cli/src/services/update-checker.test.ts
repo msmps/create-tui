@@ -1,20 +1,14 @@
+import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http";
+import { Effect, Layer, Logger } from "effect";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
-import {
-  HttpClient,
-  HttpClientRequest,
-  HttpClientResponse,
-} from "@effect/platform";
-import * as AnsiDoc from "@effect/printer-ansi/AnsiDoc";
-import { Effect, Layer, Logger, LogLevel } from "effect";
-import { version as currentVersion } from "../../package.json" with { type: "json" };
+import packageJson from "../../package.json" with { type: "json" };
 import { UpdateChecker } from "./update-checker";
 
-/**
- * Creates a mock HttpClient layer that returns the specified latest version
- */
+const currentVersion = packageJson.version;
+
 function createMockHttpClient(latestVersion: string) {
-  const mockClient: HttpClient.HttpClient = HttpClient.make((request) => {
-    return Effect.succeed(
+  const mockClient: HttpClient.HttpClient = HttpClient.make((request) =>
+    Effect.succeed(
       HttpClientResponse.fromWeb(
         HttpClientRequest.get(request.url),
         new Response(
@@ -29,45 +23,29 @@ function createMockHttpClient(latestVersion: string) {
           },
         ),
       ),
-    );
-  });
+    ),
+  );
 
   return Layer.succeed(HttpClient.HttpClient, mockClient);
 }
 
-/**
- * Renders an AnsiDoc message to a plain string for testing.
- * The message from Logger can be a single value or an array.
- */
 function renderMessage(message: unknown): string {
-  // Handle array of messages
-  if (Array.isArray(message)) {
-    return message.map(renderMessage).join(" ");
-  }
-  // Handle AnsiDoc
-  if (AnsiDoc.isDoc(message)) {
-    return AnsiDoc.render(message as AnsiDoc.AnsiDoc, { style: "pretty" });
-  }
-  return String(message);
+  return Array.isArray(message)
+    ? message.map(renderMessage).join(" ")
+    : String(message);
 }
 
 describe("UpdateChecker", () => {
   let warnings: string[] = [];
 
-  const customLogger = Logger.replace(
-    Logger.defaultLogger,
-    Logger.make(({ message }) => {
-      warnings.push(renderMessage(message));
-    }),
-  );
+  const customLogger = Logger.make(({ message }) => {
+    warnings.push(renderMessage(message));
+  });
 
-  beforeEach(async () => {
+  beforeEach(() => {
     warnings = [];
   });
 
-  /**
-   * Helper to run the update checker with a given HTTP client layer
-   */
   const runWithHttpClient = (
     httpClientLayer: Layer.Layer<HttpClient.HttpClient>,
   ): Promise<void> => {
@@ -77,8 +55,7 @@ describe("UpdateChecker", () => {
       const updateChecker = yield* UpdateChecker;
       yield* updateChecker.check({ packageManager: "bun" });
     }).pipe(
-      Logger.withMinimumLogLevel(LogLevel.Warning),
-      Effect.provide(Layer.merge(testLayer, customLogger)),
+      Effect.provide(Layer.mergeAll(testLayer, Logger.layer([customLogger]))),
       Effect.runPromise,
     );
   };

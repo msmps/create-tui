@@ -140,7 +140,7 @@ This check is non-blocking and times out after 3 seconds to avoid slowing down t
 
 ## Development
 
-Development uses Vite+ and a supported Node.js version (`^22.18.0`, `^24.11.0`, or `>=26.0.0`):
+Development uses Vite+ and a supported Node.js version (`^22.19.0`, `^24.11.0`, or `>=26.0.0`):
 
 ```bash
 # From the repository root

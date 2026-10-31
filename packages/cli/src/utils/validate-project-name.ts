@@ -1,4 +1,4 @@
-import * as HelpDoc from "@effect/cli/HelpDoc";
+import { CliError } from "effect/cli";
 import * as Effect from "effect/Effect";
 
 const SCOPED_PACKAGE_REGEX = /^(?:@([^/]+?)[/])?([^/]+?)$/;
@@ -77,11 +77,12 @@ const nodeBuiltins = [
   "zlib",
 ];
 
-const invalid = (message: string) => Effect.fail(message);
+const invalid = (message: string) =>
+  Effect.fail(new CliError.ValidationError({ message }));
 
 export function validateProjectName(
   name: string,
-): Effect.Effect<string, string> {
+): Effect.Effect<string, CliError.ValidationError> {
   if (name.length === 0) {
     return invalid("Project name must be a non-empty string");
   }
@@ -136,10 +137,4 @@ export function validateProjectName(
     }
   }
   return Effect.succeed(name);
-}
-
-export function validateProjectNameWithHelpDoc(
-  name: string,
-): Effect.Effect<string, HelpDoc.HelpDoc> {
-  return validateProjectName(name).pipe(Effect.mapError(HelpDoc.p));
 }

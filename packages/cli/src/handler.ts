@@ -1,7 +1,5 @@
-import { Prompt } from "@effect/cli";
-import { FileSystem, Path } from "@effect/platform";
-import { Ansi, AnsiDoc } from "@effect/printer-ansi";
-import { Effect } from "effect";
+import { Effect, FileSystem, Path } from "effect";
+import { Prompt } from "effect/cli";
 import { CreateProjectError } from "./domain/errors";
 import { ProjectSettings } from "./project-settings";
 import { PackageManager } from "./services/package-manager";
@@ -32,16 +30,10 @@ export function createProject() {
 
     if (directoryExists) {
       yield* Effect.logWarning(
-        AnsiDoc.hsep([
-          AnsiDoc.text("Directory"),
-          AnsiDoc.text(projectSettings.projectPath).pipe(
-            AnsiDoc.annotate(Ansi.yellow),
-          ),
-          AnsiDoc.text("already exists"),
-        ]),
+        `Directory ${projectSettings.projectPath} already exists`,
       );
 
-      const shouldDelete = yield* Prompt.confirm({
+      const shouldDelete = yield* Prompt.Confirm({
         message: "Would you like to delete it?",
       });
 
@@ -65,22 +57,10 @@ export function createProject() {
     }
 
     yield* Effect.logInfo(
-      AnsiDoc.hsep([
-        AnsiDoc.text("Creating a new project in"),
-        AnsiDoc.text(projectSettings.projectPath).pipe(
-          AnsiDoc.annotate(Ansi.green),
-        ),
-      ]),
+      `Creating a new project in ${projectSettings.projectPath}`,
     );
-
     yield* Effect.logInfo(
-      AnsiDoc.hsep([
-        AnsiDoc.text("Initializing project with the"),
-        AnsiDoc.text(projectSettings.projectTemplate.displayName).pipe(
-          AnsiDoc.annotate(Ansi.green),
-        ),
-        AnsiDoc.text("template"),
-      ]),
+      `Initializing project with the ${projectSettings.projectTemplate.displayName} template`,
     );
 
     yield* templateDownloader.download();
@@ -115,12 +95,9 @@ export function createProject() {
       yield* packageManager
         .install()
         .pipe(
-          Effect.catchAll((cause) =>
+          Effect.catch((cause) =>
             Effect.logWarning(
-              AnsiDoc.hsep([
-                AnsiDoc.text("Skipping package installation:"),
-                AnsiDoc.text(cause.message).pipe(AnsiDoc.annotate(Ansi.red)),
-              ]),
+              `Skipping package installation: ${cause.message}`,
             ),
           ),
         );
@@ -129,34 +106,20 @@ export function createProject() {
     if (!projectSettings.skipGit) {
       yield* project.initializeGitRepository().pipe(
         Effect.andThen(
-          Effect.logInfo(
-            AnsiDoc.hsep([
-              AnsiDoc.text("Git repository initialized successfully"),
-            ]),
-          ),
+          Effect.logInfo("Git repository initialized successfully"),
         ),
-        Effect.catchAll((cause) =>
+        Effect.catch((cause) =>
           Effect.logWarning(
-            AnsiDoc.hsep([
-              AnsiDoc.text("Skipping initialization of git repository:"),
-              AnsiDoc.text(cause.message).pipe(AnsiDoc.annotate(Ansi.red)),
-            ]),
+            `Skipping initialization of git repository: ${cause.message}`,
           ),
         ),
       );
     }
 
     yield* Effect.logInfo(
-      AnsiDoc.hsep([
-        AnsiDoc.text("Success!").pipe(AnsiDoc.annotate(Ansi.green)),
-        AnsiDoc.text("Project created at:"),
-        AnsiDoc.text(projectSettings.projectPath).pipe(
-          AnsiDoc.annotate(Ansi.green),
-        ),
-      ]),
+      `Success! Project created at: ${projectSettings.projectPath}`,
     );
 
-    // Check for updates after project creation
     yield* updateChecker.check({
       packageManager: packageManager.name,
     });

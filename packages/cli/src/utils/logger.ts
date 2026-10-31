@@ -1,96 +1,69 @@
-import * as Ansi from "@effect/printer-ansi/Ansi";
-import * as AnsiDoc from "@effect/printer-ansi/AnsiDoc";
-import { Cause, Inspectable } from "effect";
-import * as Arr from "effect/Array";
-import { prettyErrors } from "effect/Cause";
-import * as Logger from "effect/Logger";
-import type * as LogLevel from "effect/LogLevel";
+import { Cause, Logger } from "effect";
 
-const logLevelColors: Record<LogLevel.LogLevel["_tag"], Ansi.Ansi> = {
-  None: Ansi.white,
-  All: Ansi.white,
-  Trace: Ansi.white,
-  Debug: Ansi.blue,
-  Info: Ansi.green,
-  Warning: Ansi.yellow,
-  Error: Ansi.red,
-  Fatal: Ansi.combine(Ansi.bgRedBright, Ansi.black),
+const ANSI = {
+  reset: "\u001b[0m",
+  black: "\u001b[30m",
+  red: "\u001b[31m",
+  green: "\u001b[32m",
+  yellow: "\u001b[33m",
+  blue: "\u001b[34m",
+  cyan: "\u001b[36m",
+  white: "\u001b[37m",
+  backgroundRedBright: "\u001b[101m",
+} as const;
+
+const useColor = process.stderr.isTTY && process.env.NO_COLOR === undefined;
+
+const colorize = (value: string, color: string) =>
+  useColor ? `${color}${value}${ANSI.reset}` : value;
+
+const levelColor = (logLevel: string): string => {
+  switch (logLevel) {
+    case "Debug":
+      return ANSI.blue;
+    case "Info":
+      return ANSI.green;
+    case "Warn":
+      return ANSI.yellow;
+    case "Error":
+      return ANSI.red;
+    case "Fatal":
+      return `${ANSI.backgroundRedBright}${ANSI.black}`;
+    default:
+      return ANSI.white;
+  }
 };
 
-interface PrettyErrorWithHint extends Cause.PrettyError {
-  readonly hint?: string;
-}
+const renderMessage = (message: unknown): string =>
+  Array.isArray(message)
+    ? message.map(renderMessage).join(" ")
+    : String(message);
+
+const write = (logLevel: string, message: string) => {
+  const prefix = colorize("[create-tui]", levelColor(logLevel));
+  const output = message.length > 0 ? `${prefix} ${message}` : prefix;
+
+  if (logLevel === "Error" || logLevel === "Fatal") {
+    console.error(output);
+  } else if (logLevel === "Warn") {
+    console.warn(output);
+  } else {
+    console.log(output);
+  }
+};
 
 export function createLogger() {
-  return Logger.make(({ logLevel, message, cause }) => {
-    const messages = Arr.ensure(message);
-
-    let firstLine = AnsiDoc.text("create-tui").pipe(
-      AnsiDoc.annotate(logLevelColors[logLevel._tag]),
-      AnsiDoc.squareBracketed,
-    );
-
-    let messageIndex = 0;
-    if (messages.length > 0) {
-      const firstMaybe = messages[0];
-
-      if (AnsiDoc.isDoc(firstMaybe)) {
-        firstLine = AnsiDoc.catWithSpace(
-          firstLine,
-          firstMaybe as AnsiDoc.AnsiDoc,
-        );
-        messageIndex++;
-      }
-
-      if (typeof firstMaybe === "string") {
-        firstLine = AnsiDoc.catWithSpace(firstLine, AnsiDoc.text(firstMaybe));
-        messageIndex++;
-      }
-
-      console.log(AnsiDoc.render(firstLine, { style: "pretty" }));
+  return Logger.make(({ cause, logLevel, message }) => {
+    const renderedMessage = renderMessage(message);
+    if (renderedMessage.length > 0) {
+      write(logLevel, renderedMessage);
     }
 
-    if (!Cause.isEmpty(cause)) {
-      for (const error of prettyErrors(cause) as PrettyErrorWithHint[]) {
-        console.log(
-          AnsiDoc.render(
-            AnsiDoc.catWithSpace(firstLine, AnsiDoc.text(error.message)),
-            {
-              style: "pretty",
-            },
-          ),
-        );
+    for (const error of Cause.prettyErrors(cause)) {
+      write(logLevel, error.message);
 
-        if (error?.hint) {
-          console.log(
-            AnsiDoc.render(
-              AnsiDoc.catWithSpace(
-                firstLine,
-                AnsiDoc.hsep([
-                  AnsiDoc.text("↳"),
-                  AnsiDoc.text(error.hint),
-                ]).pipe(AnsiDoc.annotate(Ansi.cyan)),
-              ),
-              { style: "pretty" },
-            ),
-          );
-        }
-      }
-    }
-
-    if (messageIndex < messages.length) {
-      for (; messageIndex < messages.length; messageIndex++) {
-        const message = messages[messageIndex];
-
-        if (AnsiDoc.isDoc(message)) {
-          console.log(
-            AnsiDoc.render(Inspectable.redact(message) as AnsiDoc.AnsiDoc, {
-              style: "pretty",
-            }),
-          );
-        } else {
-          console.log(Inspectable.redact(message));
-        }
+      if ("hint" in error && typeof error.hint === "string") {
+        write(logLevel, colorize(`↳ ${error.hint}`, ANSI.cyan));
       }
     }
   });
