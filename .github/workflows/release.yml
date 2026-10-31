@@ -1,0 +1,88 @@
+name: Release
+
+# Publishes packages/cli to npm when a version tag (for example v0.0.12) is
+# pushed. The tag must match the version in packages/cli/package.json.
+#
+# Authentication uses npm trusted publishing (OIDC), so there is no npm token
+# to store or rotate. One-time setup on npmjs.com: create-tui → Settings →
+# Trusted publishing → GitHub Actions, repository msmps/create-tui, workflow
+# release.yml.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  verify-version:
+    name: Verify tag matches package version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Compare tag and packages/cli version
+        run: |
+          version=$(node -p "require('./packages/cli/package.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match packages/cli/package.json version $version (expected tag v$version)."
+            exit 1
+          fi
+
+  ci:
+    name: CI
+    needs: verify-version
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: Publish to npm
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub release
+      id-token: write # npm trusted publishing (OIDC) and provenance
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      # Node 24 ships npm 11.x, which supports trusted publishing (>= 11.5.1).
+      - name: Setup Node.js
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      # The published package is the dist folder: bin.js, package.json, README.md.
+      - name: Publish
+        working-directory: packages/cli/dist
+        run: |
+          case "$GITHUB_REF_NAME" in
+            *-*) npm publish --tag next ;; # prereleases, e.g. v0.1.0-beta.1
+            *) npm publish ;;
+          esac
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          case "$GITHUB_REF_NAME" in
+            *-*) gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes --prerelease ;;
+            *) gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes ;;
+          esac
