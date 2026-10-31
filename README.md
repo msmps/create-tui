@@ -135,6 +135,17 @@ npm run update:opentui
 
 The CLI package is published to npm as `create-tui`. Templates are downloaded directly from this GitHub repository.
 
+Releases are published by `.github/workflows/release.yml` when a version tag is pushed:
+
+1. Bump `version` in `packages/cli/package.json` and merge it to `main`.
+2. Tag that commit and push the tag: `git tag v0.0.12 && git push origin v0.0.12`.
+
+The workflow checks that the tag matches the package version, runs CI, publishes `packages/cli/dist` to npm with provenance, and creates a GitHub release. Tags with a prerelease suffix (for example `v0.1.0-beta.1`) publish to the `next` dist-tag.
+
+Publishing uses [npm trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored. It must be enabled once on npmjs.com under create-tui → Settings → Trusted publishing, for the repository `msmps/create-tui` and the workflow `release.yml`.
+
+To publish by hand instead, publish from the build output, not from `packages/cli`: `npm run build && cd packages/cli/dist && npm publish`.
+
 ## Contributing
 
 1. Fork the repository
