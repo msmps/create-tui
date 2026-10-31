@@ -31,37 +31,65 @@ export function createProject() {
     );
 
     if (directoryExists) {
-      yield* Effect.logWarning(
-        AnsiDoc.hsep([
-          AnsiDoc.text("Directory"),
-          AnsiDoc.text(projectSettings.projectPath).pipe(
-            AnsiDoc.annotate(Ansi.yellow),
-          ),
-          AnsiDoc.text("already exists"),
-        ]),
-      );
+      if (projectSettings.useCurrentDirectory) {
+        const entries = yield* fs
+          .readDirectory(projectSettings.projectPath)
+          .pipe(
+            Effect.mapError(
+              (cause) =>
+                new CreateProjectError({
+                  cause,
+                  message: "Failed to read current directory.",
+                  hint: "Check that you have read permissions for the directory.",
+                }),
+            ),
+          );
+        const projectFiles = entries.filter((entry) => entry !== ".git");
 
-      const shouldDelete = yield* Prompt.confirm({
-        message: "Would you like to delete it?",
-      });
-
-      if (!shouldDelete) {
+        if (projectFiles.length > 0) {
+          return yield* new CreateProjectError({
+            message: "Current directory is not empty.",
+            hint: "Use an empty directory or choose a different project name.",
+          });
+        }
+      } else if (projectSettings.projectNameFromArgument) {
         return yield* new CreateProjectError({
           message: "Directory already exists.",
           hint: "Use a different project name or remove it.",
         });
-      }
+      } else {
+        yield* Effect.logWarning(
+          AnsiDoc.hsep([
+            AnsiDoc.text("Directory"),
+            AnsiDoc.text(projectSettings.projectPath).pipe(
+              AnsiDoc.annotate(Ansi.yellow),
+            ),
+            AnsiDoc.text("already exists"),
+          ]),
+        );
 
-      yield* fs.remove(projectSettings.projectPath, { recursive: true }).pipe(
-        Effect.mapError(
-          (cause) =>
-            new CreateProjectError({
-              cause,
-              message: "Failed to delete directory.",
-              hint: "Try manually removing it.",
-            }),
-        ),
-      );
+        const shouldDelete = yield* Prompt.confirm({
+          message: "Would you like to delete it?",
+        });
+
+        if (!shouldDelete) {
+          return yield* new CreateProjectError({
+            message: "Directory already exists.",
+            hint: "Use a different project name or remove it.",
+          });
+        }
+
+        yield* fs.remove(projectSettings.projectPath, { recursive: true }).pipe(
+          Effect.mapError(
+            (cause) =>
+              new CreateProjectError({
+                cause,
+                message: "Failed to delete directory.",
+                hint: "Try manually removing it.",
+              }),
+          ),
+        );
+      }
     }
 
     yield* Effect.logInfo(

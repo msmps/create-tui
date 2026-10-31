@@ -138,8 +138,24 @@ export function validateProjectName(
   return Effect.succeed(name);
 }
 
+export function validateProjectDestination(
+  destination: string,
+): Effect.Effect<string, string> {
+  return destination === "."
+    ? Effect.succeed(destination)
+    : validateProjectName(destination);
+}
+
 export function validateProjectNameWithHelpDoc(
   name: string,
 ): Effect.Effect<string, HelpDoc.HelpDoc> {
   return validateProjectName(name).pipe(Effect.mapError(HelpDoc.p));
+}
+
+export function validateProjectDestinationWithHelpDoc(
+  destination: string,
+): Effect.Effect<string, HelpDoc.HelpDoc> {
+  return validateProjectDestination(destination).pipe(
+    Effect.mapError(HelpDoc.p),
+  );
 }

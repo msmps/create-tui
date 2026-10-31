@@ -40,6 +40,9 @@ This will prompt you for:
 - Project name
 - Template choice (Core, React, Solid, or Custom)
 
+To initialize the current directory, pass `.`. The directory must be empty,
+apart from an existing `.git` directory. Its folder name is used as the package name.
+
 ### With Arguments
 
 ```bash
@@ -51,6 +54,9 @@ bun create tui -t core my-core-app
 
 # Create a Solid project
 bun create tui -t solid my-solid-app
+
+# Initialize the current directory
+bun create tui .
 ```
 
 ## Template Formats
@@ -114,7 +120,7 @@ Any public GitHub repository can be used as a template. Use either shorthand (`o
 
 | Argument       | Description                            | Required |
 | -------------- | -------------------------------------- | -------- |
-| `project-name` | The folder to bootstrap the project in | No       |
+| `project-name` | The folder to bootstrap the project in; use `.` for the current directory | No       |
 
 ## Options
 

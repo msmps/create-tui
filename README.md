@@ -23,6 +23,9 @@ yarn create tui my-tui-project
 
 # Bun
 bun create tui my-tui-project
+
+# Initialize an empty current directory
+bun create tui .
 ```
 
 The CLI detects the package manager used to launch it and uses that same package manager to install the generated project's dependencies.
@@ -83,6 +86,9 @@ Options:
 ```bash
 # Interactive mode (prompts for all options)
 bun create tui my-project
+
+# Initialize the current directory (it must be empty, except for .git)
+bun create tui .
 
 # Use an alias (built-in template)
 bun create tui -t react my-project
