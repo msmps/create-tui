@@ -12,8 +12,8 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@opentui/core": "^0.8.1",
-    "@opentui/solid": "^0.8.1",
+    "@opentui/core": "^0.8.4",
+    "@opentui/solid": "^0.8.4",
     "solid-js": "^1.9.18"
   },
   "engines": {
